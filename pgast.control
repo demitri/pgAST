@@ -1,0 +1,4 @@
+# Starlink AST PostgreSQL extension
+comment = 'comment'
+default_version = '1.0.0'
+relocatable = true
