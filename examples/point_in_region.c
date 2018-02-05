@@ -12,6 +12,7 @@ http://irsa.ipac.caltech.edu/ibe/data/wise/allsky/4band_p1bm_frm/0a/00720a/001/0
 */
 
 /* include systen headers */
+#include <stdlib.h>
 #include <string.h>
 
 /* include AST libraries */
@@ -55,17 +56,33 @@ int main() {
 
 	AstRegion *skybox = astMapRegion(pixelbox, wcsinfo, wcsinfo) ;
 
-	astShow( skybox );
+	//astShow( skybox );
 
-	int maxpoint = 0;	
-	int npoints;
-	int maxcoord = dim1;
-	double *points;
+/*
+	// Need to call astGetRegionPoints twice:
+	//  * first time to tell us how many points are needed to create mesh
+	//  * second time to actually create mesh and return points
+	
+	int maxpoint = 0;
+	int npoints = 10000;
+	int maxcoord = 2; // number of axis values per point (e.d. 2D image = 2)
+	
 	astGetRegionPoints(skybox,
-					   0, 		 // maxpoint = 0, all other params ignored
-					   maxcoord, // length of first dimension
+					   maxpoint,	// 0 -> tell me how many points needed
+					   maxcoord,	// ignored
+					   &npoints,	// ignored
+					   AST__NULL); 	// ignored
+					   
+	printf("number of points needed for mesh: %d\n", npoints);
+
+	maxpoint = npoints; // length of second dimension of points array
+
+	double *points = (double*)malloc(maxpoint*maxcoord * sizeof(double));
+	astGetRegionPoints(skybox,
+					   maxpoint, 	// maxpoint = 0, all other params ignored
+					   maxcoord,	// length of first dimension
 					   &npoints,
-					   points);	 // shape [maxcoord][maxpoint]
+					   points);		// shape [maxcoord][maxpoint]
 	
 	printf("astGetRegionPoints npoints -> %d", npoints);
 	for (int i=0; i < npoints; i++) {
@@ -73,28 +90,56 @@ int main() {
 	}
 
 	printf(" ----- ");
+*/
+
 
 	int surface = 1; // non-0 = fit points on surface (2D -> boundary) of region
-	int *npoint;
-//	double *points;
-//	int maxcoord = dim1;
-//	int maxpoint = 0; // 0 = number of points fits returned in "npoint"
+	int npoints;
+	int maxcoord = 2; // number of axis values per point (e.d. 2D image = 2)
+	int maxpoint = 0; // 0 = number of points fits returned in "npoint"
 	
-	astGetRegionMesh(skybox, surface, maxpoint, maxcoord, npoint, points);
+	astGetRegionMesh(skybox,	// the region
+					 surface,	// 1 = fit along boundary
+					 maxpoint,	// 0 = tell me how many points needed
+					 maxcoord,	// ignored
+					 &npoints,	// returns the number of points needed
+					 NULL);		// ignored
 
-	printf("Number of points: %d\n-----------------\n", *npoint);
-	for (int i=0; i < *npoint; i+=2) {
-		printf("%f, %f\n", points[i], points[i+1]);
+	//printf("number of points needed for mesh: %d\n", npoints);
+	
+	double *points = (double*)malloc(maxcoord*npoints * sizeof(double));
+
+	//printf("malloc size: %d\n", maxcoord*npoints);
+
+	maxpoint = npoints; // length of second dimension of points array
+	
+	// Call astGetRegionMesh again, this time getting points array.
+	//
+	astGetRegionMesh(skybox,	// the region
+					surface,	// 1 = fit along boundary
+					maxpoint,	// 1 = actually return points
+					maxcoord,	// number of axes of region (2D image = 2)
+					&npoints,	// returns the number of points needed
+					points);	// the array of points
+
+	//printf("number of points needed for mesh: %d\n", npoints);
+	for (int i=0; i < npoints; i+=2) {
+		printf("%f, %f\n", points[i], points[i+1]); // (x, y)
 	}
+	
 	//printf("%f, %f", points[0], points[1]);
-
-//	AstPolygon *polygon = astPolygon( astFrame(2, "unit(1)=deg,unit(2)=deg"),
-//									  npoint,    // npnt - number of points in the Region
-//									  dim2,      // dim - number of elements along the second dimension of the "points" array
-//									  points,    // points
-//									  AST__NULL, // uncertainty, default (NULL) = 1e-6
-//									  ""); 		 // options
-
+	
+	// Create a polygon using the vertices in the mesh in flat geometry.
+	//
+	AstPolygon *flat_polygon = astPolygon( astFrame(2, "unit(1)=deg,unit(2)=deg"), // frame is copied
+									  npoints,   // npnt - number of points in the Region
+									  maxcoord,  // dim - number of elements along the second dimension of the "points" array
+									  points,    // points
+									  AST__NULL, // uncertainty, default (NULL) = 1e-6
+									  ""); 		 // options
+	
+	
+	
 	// point in region?
 
 	astEnd;
