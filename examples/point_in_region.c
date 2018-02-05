@@ -1,3 +1,15 @@
+/*
+
+To compile:
+
+export AST_LIB=/usr/local/ast-8.6.2/lib
+export CFLAGS_SL="$AST_LIB/libast.a $AST_LIB/libast_grf3d.a $AST_LIB/libast_err.a  $AST_LIB/libast_grf_2.0.a $AST_LIB/libast_grf_3.2.a $AST_LIB/libast_grf_5.6.a $AST_LIB/libast_pal.a"
+cc -I /usr/local/ast/include $CFLAGS_SL point_in_region.c
+
+File used available here:
+http://irsa.ipac.caltech.edu/ibe/data/wise/allsky/4band_p1bm_frm/0a/00720a/001/00720a001-w1-int-1b.fits
+
+*/
 
 /* include systen headers */
 #include <string.h>
@@ -29,15 +41,61 @@ int main() {
 	int dim1 = 1016;
 	int dim2 = 1016;
 	
-	astShow( wcsinfo );
+	//astShow( wcsinfo );
 	
 	//AstSelectorMap *astSelectorMap = astSelectorMap( int nreg, AstRegion *regs[], double badval, const char *options, ... );
 
+	const double point1[] = {0.5, 0.5};
+	const double point2[] = {dim1+0.5, dim2+0.5};
+	const char *options = "";
 	
+	AstBox *pixelbox = astBox( astGetFrame(wcsinfo, AST__BASE), 1, point1, point2, AST__NULL, options );
 
+	//astShow( pixelbox );
 
+	AstRegion *skybox = astMapRegion(pixelbox, wcsinfo, wcsinfo) ;
 
+	astShow( skybox );
 
+	int maxpoint = 0;	
+	int npoints;
+	int maxcoord = dim1;
+	double *points;
+	astGetRegionPoints(skybox,
+					   0, 		 // maxpoint = 0, all other params ignored
+					   maxcoord, // length of first dimension
+					   &npoints,
+					   points);	 // shape [maxcoord][maxpoint]
+	
+	printf("astGetRegionPoints npoints -> %d", npoints);
+	for (int i=0; i < npoints; i++) {
+		printf("%f\n", points[i]);
+	}
+
+	printf(" ----- ");
+
+	int surface = 1; // non-0 = fit points on surface (2D -> boundary) of region
+	int *npoint;
+//	double *points;
+//	int maxcoord = dim1;
+//	int maxpoint = 0; // 0 = number of points fits returned in "npoint"
+	
+	astGetRegionMesh(skybox, surface, maxpoint, maxcoord, npoint, points);
+
+	printf("Number of points: %d\n-----------------\n", *npoint);
+	for (int i=0; i < *npoint; i+=2) {
+		printf("%f, %f\n", points[i], points[i+1]);
+	}
+	//printf("%f, %f", points[0], points[1]);
+
+//	AstPolygon *polygon = astPolygon( astFrame(2, "unit(1)=deg,unit(2)=deg"),
+//									  npoint,    // npnt - number of points in the Region
+//									  dim2,      // dim - number of elements along the second dimension of the "points" array
+//									  points,    // points
+//									  AST__NULL, // uncertainty, default (NULL) = 1e-6
+//									  ""); 		 // options
+
+	// point in region?
 
 	astEnd;
 }
