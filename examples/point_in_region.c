@@ -27,8 +27,8 @@ http://irsa.ipac.caltech.edu/ibe/data/wise/allsky/4band_p1bm_frm/0a/00720a/001/0
  /* Abbreviated header */
 char* header = "NAXIS   =                    2                                                  NAXIS1  =                 2048                                                  NAXIS2  =                 1489                                                  CTYPE1  = 'RA---TAN'           /Coordinate type                                 CTYPE2  = 'DEC--TAN'           /Coordinate type                                 CRPIX1  =        1025.00000000 /X of reference pixel                            CRPIX2  =        745.000000000 /Y of reference pixel                            CRVAL1  =        83.9237640908 /RA of reference pixel (deg)                     CRVAL2  =       -5.31827757943 /Dec of reference pixel (deg)                    CD1_1   =    0.000109925385690 /RA deg per column pixel                         CD1_2   =    2.27483771892E-08 /RA deg per row pixel                            CD2_1   =    1.99364884357E-07 /Dec deg per column pixel                        CD2_2   =   -0.000109997185155 /Dec deg per row pixel                           ";
 
-#define degToRad(angleDegrees) ((angleDegrees) * M_PI / 180.0)
-#define radToDeg(angleRadians) ((angleRadians) * 180.0 / M_PI)
+#define deg2rad(angleDegrees) ((angleDegrees) * M_PI / 180.0)
+#define rad2deg(angleRadians) ((angleRadians) * 180.0 / M_PI)
 
 int main() {
 
@@ -187,6 +187,8 @@ int main() {
 						
 	free(mesh_points);
 
+	// Create new polygon with downsized points. Frame unit is in degrees.
+	//
 	AstPolygon *new_polygon = astDownsize(flat_polygon, 4.848e-6 /* maxerr */, 0 /* maxvert */);
 
 	// Run twice - the first time to know how many points will be returned,
@@ -211,11 +213,41 @@ int main() {
 					   points);
 										  
 	for (int i=0; i < npoints; i++) {
-		printf("(%.9f, %.9f)\n", radToDeg(points[i]), radToDeg(points[i+npoints])); // (x, y)
+		printf("(%.9f, %.9f)\n", rad2deg(points[i]), rad2deg(points[i+npoints])); // (x, y)
 	}
 	free(points);
 	
-	// point in region?
+	//astShow(new_polygon);
 
+	// this point is inside the region
+	//const double x_in = 83.91931218; // deg
+	//const double y_in = -5.32360392; // deg
+
+	// this point is outside the region
+	const double x_in = 1.0;
+	const double y_in = 1.0;
+
+	double x_out, y_out;
+
+	astShow(new_polygon);
+
+	// astTran2 wants arrays, but since npoints=1 a pointer to a double is the same
+	
+	astTran2(new_polygon,	// region as mapping (will be a unit map)
+			 1, 			// npoints to be transformed
+			 &x_in,			// An array of "npoint" X-coordinate values for the input (untransformed) points
+			 &y_in,			// An array of "npoint" Y-coordinate values for the input (untransformed) points
+			 1,				// forward = 1, inverse = 0
+			 &x_out,		// array with npoint elements for output
+			 &y_out);		// array with npoint elements for output
+	
+	printf("\nin : (x, y) = (%.9f, %.9f)\n", x_in, y_in);
+	if (x_out == AST__BAD) {
+		printf("out: (x, y) = (%.9f, %.9f)\n\n", x_out, y_out);
+		printf("outside region\n\n");
+	} else {
+		printf("out: (x, y) = (%.9f, %.9f)\n\n", x_out, y_out);
+		printf("inside region\n\n");
+	}
 	astEnd;
 }
