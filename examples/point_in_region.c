@@ -1,8 +1,18 @@
 /*
 
+This script is a working example of how to:
+
+* take a FITS header
+* extract the WCS
+* create a polygon that matches the boundary of the image
+* test whether a given point is inside or outside of the image
+
+Note the original FITS file is not needed; just the header.
+Two FITS headers are hardcoded in this script; no external files are needed.
+
 To compile:
 
-export AST_LIB=/usr/local/ast-8.6.2/lib
+export AST_LIB=/usr/local/ast/lib
 export CFLAGS_SL="$AST_LIB/libast.a $AST_LIB/libast_grf3d.a $AST_LIB/libast_err.a  $AST_LIB/libast_grf_2.0.a $AST_LIB/libast_grf_3.2.a $AST_LIB/libast_grf_5.6.a $AST_LIB/libast_pal.a"
 cc -I /usr/local/ast/include $CFLAGS_SL point_in_region.c
 
@@ -11,7 +21,7 @@ http://irsa.ipac.caltech.edu/ibe/data/wise/allsky/4band_p1bm_frm/0a/00720a/001/0
 
 */
 
-/* include systen headers */
+/* include system headers */
 #include <stdlib.h>
 #include <string.h>
 #include <math.h>
@@ -29,6 +39,10 @@ char* header = "NAXIS   =                    2                                  
 
 #define deg2rad(angleDegrees) ((angleDegrees) * M_PI / 180.0)
 #define rad2deg(angleRadians) ((angleRadians) * 180.0 / M_PI)
+
+//int point_in_region(AstRegion *region, double ra, double dec) {
+
+//}
 
 int main() {
 
@@ -162,7 +176,7 @@ int main() {
 
 	printf("number of points needed for mesh: %d\n", npoints);
 	for (int i=0; i < npoints; i++) {
-		printf("(%.8f, %.8f)\n", mesh_points[i], mesh_points[i+npoints]); // (x, y)
+		//printf("(%.8f, %.8f)\n", mesh_points[i], mesh_points[i+npoints]); // (x, y)
 	}
 	printf(" ------ ");
 		
@@ -177,7 +191,7 @@ int main() {
 */
 	// Create a new polygon from the 2D mesh points
 	//
-	AstFrame *basic_frame = astFrame(2, "unit(1)=deg,unit(2)=deg"); // no. axes, options
+	AstFrame *basic_frame = astFrame(2, "unit(1)=deg,unit(2)=deg"); // # of axes, options
 	AstPolygon *flat_polygon = astPolygon(basic_frame, //astGetFrame(wcsinfo, AST__BASE), // frame is copied
 										  npoints,	// number of points in region
 										  npoints, // dim - number of elements along the second dimension of the "points" array
@@ -213,27 +227,49 @@ int main() {
 					   points);
 										  
 	for (int i=0; i < npoints; i++) {
-		printf("(%.9f, %.9f)\n", rad2deg(points[i]), rad2deg(points[i+npoints])); // (x, y)
+		printf("deg = (%.9f, %.9f) | rad = (%.9f, %.9f)\n", rad2deg(points[i]), rad2deg(points[i+npoints]), points[i], points[i+npoints]); // (x, y)
 	}
+/*
+//	AstFrame *skyFrame = astFrame( 2, "unit(1)=deg,unit(2)=deg,System=ICRS,Equinox=J2000"); // # of axes, options
+	AstPolygon *poly2 = astPolygon(astSkyFrame("System=ICRS,unit(1)=rad,unit(2)=rad"),
+								   npoints,
+								   npoints,
+								   points,
+								   AST__NULL,
+								   "");
+*/
+	AstPolygon *new_sky_polygon = astPolygon(astGetFrame(wcsinfo, AST__CURRENT),
+											 npoints,
+											 npoints,
+											 points,
+											 AST__NULL,
+											 "");
+								   
+	if (!astGetI(new_sky_polygon, "Bounded"))
+		astNegate(new_sky_polygon);
+
 	free(points);
 	
+	AstRegion *skybox2 = astMapRegion(new_polygon, wcsinfo, wcsinfo) ;
 	//astShow(new_polygon);
 
 	// this point is inside the region
-	//const double x_in = 83.91931218; // deg
-	//const double y_in = -5.32360392; // deg
+	//const double x_in = deg2rad(83.91931218); // deg
+	//const double y_in = deg2rad(-5.32360392); // deg
 
 	// this point is outside the region
-	const double x_in = 1.0;
-	const double y_in = 1.0;
+	const double x_in = deg2rad(120.0);
+	const double y_in = deg2rad(45.0);
 
 	double x_out, y_out;
 
-	astShow(new_polygon);
+	//astShow(poly2);
 
 	// astTran2 wants arrays, but since npoints=1 a pointer to a double is the same
 	
-	astTran2(new_polygon,	// region as mapping (will be a unit map)
+	//printf("Is bounded: %s\n", astGetI(new_polygon, "Bounded") == 0 ? "False" : "True");
+		
+	astTran2(new_sky_polygon,	// region as mapping (will be a unit map)
 			 1, 			// npoints to be transformed
 			 &x_in,			// An array of "npoint" X-coordinate values for the input (untransformed) points
 			 &y_in,			// An array of "npoint" Y-coordinate values for the input (untransformed) points
@@ -243,7 +279,7 @@ int main() {
 	
 	printf("\nin : (x, y) = (%.9f, %.9f)\n", x_in, y_in);
 	if (x_out == AST__BAD) {
-		printf("out: (x, y) = (%.9f, %.9f)\n\n", x_out, y_out);
+		printf("out: (x, y) = (AST__BAD, AST__BAD)\n\n");
 		printf("outside region\n\n");
 	} else {
 		printf("out: (x, y) = (%.9f, %.9f)\n\n", x_out, y_out);
