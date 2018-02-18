@@ -9,8 +9,8 @@
 #include "_pgast_pgast.h"
 
 /* include PostgreSQL library and PG macro definitions */
-#include "postgres.h"
-#include "fmgr.h"
+//#include "postgres.h"
+//#include "fmgr.h"
 #include "utils/builtins.h"
 
 #ifdef PG_MODULE_MAGIC
