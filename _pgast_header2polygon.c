@@ -1,15 +1,17 @@
 
-#include <math.h>
+//#include <math.h>
 
 #include "ast.h" // Starlink AST library header
+//#include "postgres.h"
+#include "_pgast_pgast.h"
 
-#define deg2rad(angleDegrees) ((angleDegrees) * M_PI / 180.0)
-#define rad2deg(angleRadians) ((angleRadians) * 180.0 / M_PI)
+//#define deg2rad(angleDegrees) ((angleDegrees) * M_PI / 180.0)
+//#define rad2deg(angleRadians) ((angleRadians) * 180.0 / M_PI)
 
 
-AstRegion* fitsheader2polygon(const char *header) //, double *polygon, int *npoints)
+AstPolygon* fitsheader2polygon(const char *header) //, double *polygon, int *npoints)
 {
-	int npoints;
+	//int npoints;
 	
 	// Inputs
 	// ------
@@ -38,7 +40,7 @@ AstRegion* fitsheader2polygon(const char *header) //, double *polygon, int *npoi
 	astBegin;
 	
 	// Create an empty FITS channel (AST object that holds a FITS header)
-	AstFITSChan *fitsChan = astFitsChan( NULL, NULL, "");
+	AstFitsChan *fitsChan = astFitsChan( NULL, NULL, "");
 	astPutCards( fitsChan, header ); // add all cards at once
 	
 	// Read the WCS info from the header
@@ -53,7 +55,7 @@ AstRegion* fitsheader2polygon(const char *header) //, double *polygon, int *npoi
 	int dim1, dim2;
 	int success;
 	success = astGetFitsI(fitsChan, "NAXIS1", &dim1);
-	success = astGetFitsI(fitsChan, "NAXIS2", &dim1);
+	success = astGetFitsI(fitsChan, "NAXIS2", &dim2);
 	
 	// Create a "box" object that covers the extent of the
 	// image in pixel coordinates.
@@ -124,7 +126,7 @@ AstRegion* fitsheader2polygon(const char *header) //, double *polygon, int *npoi
 	// Create a new polygon from the 2D mesh points
 	// in a flat (pixel) frame (i.e. Cartesean).
 	//
-	AstFrame *basicFrame = astFrame(2, "unit(1)=deg,unit(2)=deg"); // # of axes, options
+	AstFrame *basic_frame = astFrame(2, "unit(1)=deg,unit(2)=deg"); // # of axes, options
 	AstPolygon *flat_polygon = astPolygon(basic_frame,
 										  num_points,	// number of points in region
 										  num_points,	// dim - number of elements along 2nd dimension of points array

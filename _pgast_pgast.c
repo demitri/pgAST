@@ -1,10 +1,12 @@
 
 /* include system headers */
-#include <math.h>
+//#include <math.h>
 #include <string.h>
 
 /* include AST libraries */
 #include "ast.h"
+
+#include "_pgast_pgast.h"
 
 /* include PostgreSQL library and PG macro definitions */
 #include "postgres.h"
@@ -17,8 +19,8 @@ PG_MODULE_MAGIC;
 #error "PG_MODULE_MAGIC wasn't defined!"
 #endif
 
-#define deg2rad(angleDegrees) ((angleDegrees) * M_PI / 180.0)
-#define rad2deg(angleRadians) ((angleRadians) * 180.0 / M_PI)
+//#define deg2rad(angleDegrees) ((angleDegrees) * M_PI / 180.0)
+//#define rad2deg(angleRadians) ((angleRadians) * 180.0 / M_PI)
 
 /*
 PG_FUNCTION_INFO_V1(point_in_polygon);
@@ -36,7 +38,7 @@ point_in_polygon(PG_FUNCTION_ARGS) // (text fits_header, points[] polygon)
 	
 	// Get the WCS from the header
 	// ---------------------------
-	AstFITSChan *fits_chan = astFitsChan(NULL, NULL, "");
+	AstFitsChan *fits_chan = astFitsChan(NULL, NULL, "");
 	astPutCards(fits_chan, header); // add all cards at once
 	
 	AstFrameSet *wcs_frames = astRead(fits_chan);
@@ -62,7 +64,7 @@ point_in_polygon(PG_FUNCTION_ARGS) // (text fits_header)
 	double ra  = PG_GETARG_FLOAT8(1); // in degrees
 	double dec = PG_GETARG_FLOAT8(2); // in degrees
 		
-	AstRegion *sky_polygon = fitsheader2polygon(header);
+	AstRegion *sky_polygon = fitsheader2polygon(fits_header);
 	
 	// convert to radians
 	ra = deg2rad(ra);
@@ -79,13 +81,17 @@ point_in_polygon(PG_FUNCTION_ARGS) // (text fits_header)
 			 &ra_out,		// array with npoint elements for output
 			 &dec_out);		// array with npoint elements for output
 	
+	PG_RETURN_BOOL(ra_out == AST__BAD ? 0 : 1);
+
+/*
 	if (x_out == AST__BAD) {
 		// point is outside of region
-		
+		PG_RETURN_BOOL(0);
 	} else {
 		//	point is inside of region
-
+		PG_RETURN_BOOL(1);
 	}
+	*/
 }
 
 

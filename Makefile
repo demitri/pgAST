@@ -4,14 +4,16 @@ EXTENSION = pgast
 # random files to install into $PREFIX/share/$MODULEDIR
 DATA = pgast--1.0.0.sql     # script files to install
 
+PGFILEDESC = "pgast - Starlink AST library from PostgreSQL"
+
 # REGRESS = pgast_test      # test script file (without extension)
 
 #  list of shared-library objects to be built from source files
-#MODULES = pgast             # C module file to build
-#MODULE_big = pgast
+#MODULES = pgast            # C module file to build (i.e. pgast.o)
+#MODULE_big = pgast			# if building source from multiple files
 
-# i.e. add "pgast.o"
-MODULES = pgast
+# prefix of source files
+MODULE_big = _pgast
 
 # 'patsubst' is a make command; inserts files that match the pattern
 #       where '%' is the wildcard, e.g. $(patsubst %.c)
@@ -68,13 +70,13 @@ CFLAGS_SL = $(AST_LIB)/libast.a $(AST_LIB)/libast_grf3d.a $(AST_LIB)/libast_err.
 
 #SHLIB_LINK += -L/usr/local/ast-8.6.2/lib 
 #SHLIB_LINK += -L.
-OBJS = pgast.o
+OBJS = _pgast_pgast.o _pgast_header2polygon.o
 
 # -----------------------------------------------------
 
 PG_CONFIG = pg_config
 PGXS := $(shell $(PG_CONFIG) --pgxs)
-
 include $(PGXS)
+
 # use local copy for testing
 #include ./pgxs.mk
