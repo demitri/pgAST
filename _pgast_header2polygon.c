@@ -32,51 +32,70 @@ AstPolygon* fitsheader2polygon(const char *header) //, double *polygon, int *npo
 	//   CRPIX1, CRPIX2, CD1_1, CD1_2, CD2_1, CD2_2
 	//
 	
-	int status;
 	
 	// initialize status
-	status = 0;
+//	int status = 0;
+	
+	int dim1, dim2;
+	int surface, num_points, maxcoord, maxpoint;
+	AstFitsChan *fitsChan;
+	AstBox *pixelbox, *skybox;
+	AstFrameSet *wcs_frames;
+	AstFrame *pixel_frame, *sky_frame, *basic_frame;
+	AstPolygon *flat_polygon, *reduced_flat_polygon, *new_sky_polygon;
+	double *points, *mesh_points;
 	
 	astBegin;
 	
 	// Create an empty FITS channel (AST object that holds a FITS header)
-	AstFitsChan *fitsChan = astFitsChan( NULL, NULL, "");
+#pragma GCC diagnostic ignored "-Wformat-zero-length"
+	fitsChan = astFitsChan( NULL, NULL, "");
 	astPutCards( fitsChan, header ); // add all cards at once
+#pragma GCC diagnostic warning "-Wformat-zero-length"
 	
 	// Read the WCS info from the header
-	AstFrameSet *wcs_frames = astRead(fitsChan);
+	wcs_frames = astRead(fitsChan);
 
+	//ereport(DEBUG1,(errmsg("pgast: Header:")));
+	//ereport(DEBUG1,(errmsg("%s", header)));
+	
 	// The resulting object contains two frames:
 	// the pixel frame and the "sky" frame.
-	AstFrame *pixel_frame = astGetFrame(wcs_frames, AST__BASE);
-	AstFrame *sky_frame = astGetFrame(wcs_frames, AST__CURRENT);
+	pixel_frame = astGetFrame(wcs_frames, AST__BASE);
+	sky_frame = astGetFrame(wcs_frames, AST__CURRENT);
 	
 	// get the image dimensions, read from header
-	int dim1, dim2;
-	int success;
-	success = astGetFitsI(fitsChan, "NAXIS1", &dim1);
-	success = astGetFitsI(fitsChan, "NAXIS2", &dim2);
-	
+	{
+		int success;
+		success = astGetFitsI(fitsChan, "NAXIS1", &dim1);
+		if (success != 1)
+			ereport(DEBUG1, (errmsg("Error: astGetFits did not find 'NAXIS1' keyword.")));
+		success = astGetFitsI(fitsChan, "NAXIS2", &dim2);
+		if (success != 1)
+			ereport(DEBUG1, (errmsg("Error: astGetFits did not find 'NAXIS2' keyword.")));
+	}
 	// Create a "box" object that covers the extent of the
 	// image in pixel coordinates.
 	//
-	const double point1[] = {0.5, 0.5};
-	const double point2[] = {dim1+0.5, dim2+0.5};
-	const char *options = "";
-	AstBox *pixelbox = astBox(pixel_frame,
-							  1,
-							  point1,
-							  point2,
-							  AST__NULL,
-							  options);
-							  
+	{
+		const double point1[] = {0.5, 0.5};
+		const double point2[] = {dim1+0.5, dim2+0.5};
+#pragma GCC diagnostic ignored "-Wformat-zero-length"
+		pixelbox = astBox(pixel_frame,
+						  1,
+						  point1,
+						  point2,
+						  AST__NULL,
+						  ""); // no options needed
+#pragma GCC diagnostic warning "-Wformat-zero-length"
+	}							  
 	// Map the box in the pixel frame onto the sky frame.
 	// The function knows to go from pixels-> sky
 	// since that is the frame 'pixelbox' is in.
 	// (Note that a frame set can also act as a mapping.)
-	AstRegion *skybox = astMapRegion(pixelbox,
-									 wcs_frames,   // map
-									 wcs_frames);  // frame
+	skybox = astMapRegion(pixelbox,
+						  wcs_frames,   // map
+						  wcs_frames);  // frame
 
 	// if skybox == AST__NULL : handle error...
 
@@ -92,10 +111,10 @@ AstPolygon* fitsheader2polygon(const char *header) //, double *polygon, int *npo
 	//    - allocate an array of that many double values
 	//    - call again with allocated array
 	//
-	int surface = 1;  // non-zero = fit points on  surface (2D -> boundary) of region
-	int num_points; // defined as parameter
-	int maxcoord = 2; // number of axis values per point (e.g. 2D image = 2)
-	int maxpoint = 0; // 0 = number of points fits returned in "npoint"
+	surface = 1;  // non-zero = fit points on  surface (2D -> boundary) of region
+	//num_points; // defined as parameter
+	maxcoord = 2; // number of axis values per point (e.g. 2D image = 2)
+	maxpoint = 0; // 0 = number of points fits returned in "npoint"
 	
 	// First call - how many points needed for a mesh?
 	//
@@ -107,7 +126,8 @@ AstPolygon* fitsheader2polygon(const char *header) //, double *polygon, int *npo
 					 NULL);		// ignored
 	
 	// allocate array for points -> [maxcoord][num_points]
-	double *mesh_points = (double*)palloc(maxcoord*num_points * sizeof(double));
+	ereport(DEBUG1, (errmsg("pgast: about to allocate [%d][%d][%d]", maxcoord, num_points, sizeof(double))));
+	mesh_points = (double*)palloc(maxcoord*num_points * sizeof(double));
 	
 	maxpoint = num_points; // length of second dimension of points array
 	
@@ -123,16 +143,18 @@ AstPolygon* fitsheader2polygon(const char *header) //, double *polygon, int *npo
 	// [x1, x2, ..., xn, y1, y2, ..., yn] in RADIANS.
 	// (or more specifically, [ra1, ..., ran, dec1, ..., decn]
 	
+#pragma GCC diagnostic ignored "-Wformat-zero-length"
 	// Create a new polygon from the 2D mesh points
 	// in a flat (pixel) frame (i.e. Cartesean).
 	//
-	AstFrame *basic_frame = astFrame(2, "unit(1)=deg,unit(2)=deg"); // # of axes, options
-	AstPolygon *flat_polygon = astPolygon(basic_frame,
-										  num_points,	// number of points in region
-										  num_points,	// dim - number of elements along 2nd dimension of points array
-										  mesh_points,	// 2D array of mesh points
-										  AST__NULL,	// uncertainty
-										  "");			// options
+	basic_frame = astFrame(2, "unit(1)=deg,unit(2)=deg"); // # of axes, options
+	flat_polygon = astPolygon(basic_frame,
+							  num_points,	// number of points in region
+							  num_points,	// dim - number of elements along 2nd dimension of points array
+							  mesh_points,	// 2D array of mesh points
+							  AST__NULL,	// uncertainty
+							  "");			// options
+#pragma GCC diagnostic warning "-Wformat-zero-length"
 
 	pfree(mesh_points);
 	
@@ -140,8 +162,10 @@ AstPolygon* fitsheader2polygon(const char *header) //, double *polygon, int *npo
 	// This removes points where the polygon is close
 	// to a Cartesean straight line up to the error specified.
 	//
-	double max_downsize_err = 4.848e-6; // 1 arcsec in radians
-	AstPolygon *reduced_flat_polygon = astDownsize(flat_polygon, max_downsize_err, 0);
+	{
+		double max_downsize_err = 4.848e-6; // 1 arcsec in radians
+		reduced_flat_polygon = astDownsize(flat_polygon, max_downsize_err, 0);
+	}
 
 	// Get the points of this new reduced polygon.
 	// Again, this must be done in three steps: find out
@@ -155,7 +179,7 @@ AstPolygon* fitsheader2polygon(const char *header) //, double *polygon, int *npo
 					   NULL);
 					   
 	// allocate points array
-	double *points = (double*)palloc(maxcoord*num_points * sizeof(double));
+	points = (double*)palloc(maxcoord*num_points * sizeof(double));
 
 	maxpoint = num_points; // length of second dimension of points array
 	maxcoord = num_points;
@@ -170,15 +194,19 @@ AstPolygon* fitsheader2polygon(const char *header) //, double *polygon, int *npo
 	//for (int i=0; i < num_points; i++) {
 	//	printf("deg = (%.9f, %.9f) | rad = (%.9f, %.9f)\n", rad2deg(points[i]), rad2deg(points[i+num_points]), points[i], points[i+num_points]); // (x, y)
 	//}
-	
+
+#pragma GCC diagnostic ignored "-Wformat-zero-length"
+
 	// Finally, create a new polygon in the sky frame with these points.
 	//
-	AstPolygon *new_sky_polygon = astPolygon(sky_frame,
-											 num_points,
-											 num_points,
-											 points,
-											 AST__NULL,
-											 "");
+	new_sky_polygon = astPolygon(sky_frame,
+								 num_points,
+								 num_points,
+								 points,
+								 AST__NULL,
+								 "");
+#pragma GCC diagnostic warning "-Wformat-zero-length"
+
 	pfree(points);
 	
 	if (!astGetI(new_sky_polygon, "Bounded"))

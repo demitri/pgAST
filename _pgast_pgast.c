@@ -60,19 +60,23 @@ Datum
 point_in_polygon(PG_FUNCTION_ARGS) // (text fits_header)
 {
 	// get function args
-	char* fits_header = PG_GETARG_CSTRING(0);
+	char* fits_header;
 	double ra  = PG_GETARG_FLOAT8(1); // in degrees
 	double dec = PG_GETARG_FLOAT8(2); // in degrees
-		
-	AstRegion *sky_polygon = fitsheader2polygon(fits_header);
+
+	double ra_out, dec_out;
 	
+	// create a null-terminated C string from a PostgreSQL text value
+	fits_header = text_to_cstring(PG_GETARG_TEXT_P(0));
+	
+	AstPolygon *sky_polygon = fitsheader2polygon(fits_header);
+		
 	// convert to radians
 	ra = deg2rad(ra);
 	dec = deg2rad(dec);
 	
 	// test if point is in polygon
 	//
-	double ra_out, dec_out;
 	astTran2(sky_polygon,	// region as mapping (will be a unit map)
 			 1, 			// npoints to be transformed
 			 &ra,			// An array of "npoint" X-coordinate values for the input (untransformed) points
@@ -109,13 +113,14 @@ wcs_test(PG_FUNCTION_ARGS)
 	/* get function args here */
 	// type var = PG_GETARG_XXX(idx);
 	
-	int status;
+//	int status;
 	AstFitsChan *fitschan;
 	AstFrameSet *wcsinfo;
 	AstFrame *frame;
+	int issky;
 	
 	/* initialize AST status */
-	status = 0;
+//	status = 0;
 	
 	astBegin;
 
@@ -126,7 +131,10 @@ wcs_test(PG_FUNCTION_ARGS)
 		sink: NULL -> not needed
 		options:
 	*/
+#pragma GCC diagnostic ignored "-Wformat-zero-length"
 	fitschan = astFitsChan( NULL, NULL, ""); /* create an empty channel */
+#pragma GCC diagnostic warning "-Wformat-zero-length"
+
 	astPutCards( fitschan, header ); /* add all cards at once */
 	
 	/* alternate: add one card at a time */
@@ -140,7 +148,7 @@ wcs_test(PG_FUNCTION_ARGS)
 	
 	/* test if WCS is a SkyFrame */
 	frame = astGetFrame( wcsinfo, AST__CURRENT );
-	int issky = astIsASkyFrame( frame );
+	issky = astIsASkyFrame( frame );
 	frame = astAnnul( frame );
 	
     /*
