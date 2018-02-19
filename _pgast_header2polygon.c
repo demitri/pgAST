@@ -68,11 +68,13 @@ AstPolygon* fitsheader2polygon(const char *header) //, double *polygon, int *npo
 	{
 		int success;
 		success = astGetFitsI(fitsChan, "NAXIS1", &dim1);
-		if (success != 1)
+		if (success != 1) {
 			ereport(DEBUG1, (errmsg("Error: astGetFits did not find 'NAXIS1' keyword.")));
+		}
 		success = astGetFitsI(fitsChan, "NAXIS2", &dim2);
-		if (success != 1)
+		if (success != 1) {
 			ereport(DEBUG1, (errmsg("Error: astGetFits did not find 'NAXIS2' keyword.")));
+		}
 	}
 	// Create a "box" object that covers the extent of the
 	// image in pixel coordinates.
@@ -126,7 +128,7 @@ AstPolygon* fitsheader2polygon(const char *header) //, double *polygon, int *npo
 					 NULL);		// ignored
 	
 	// allocate array for points -> [maxcoord][num_points]
-	ereport(DEBUG1, (errmsg("pgast: about to allocate [%d][%d][%d]", maxcoord, num_points, sizeof(double))));
+	//ereport(DEBUG1, (errmsg("pgast: about to allocate [%d][%d][%d]", maxcoord, num_points, sizeof(double))));
 	mesh_points = (double*)palloc(maxcoord*num_points * sizeof(double));
 	
 	maxpoint = num_points; // length of second dimension of points array
