@@ -229,37 +229,40 @@ int main() {
 	for (int i=0; i < npoints; i++) {
 		printf("deg = (%.9f, %.9f) | rad = (%.9f, %.9f)\n", rad2deg(points[i]), rad2deg(points[i+npoints]), points[i], points[i+npoints]); // (x, y)
 	}
-/*
-//	AstFrame *skyFrame = astFrame( 2, "unit(1)=deg,unit(2)=deg,System=ICRS,Equinox=J2000"); // # of axes, options
-	AstPolygon *poly2 = astPolygon(astSkyFrame("System=ICRS,unit(1)=rad,unit(2)=rad"),
-								   npoints,
-								   npoints,
-								   points,
-								   AST__NULL,
-								   "");
-*/
+	
+	// Create a new polygon in the original frame from the FITS file.
+	//
 	AstPolygon *new_sky_polygon = astPolygon(astGetFrame(wcsinfo, AST__CURRENT),
 											 npoints,
 											 npoints,
 											 points,
 											 AST__NULL,
 											 "");
-								   
+	free(points);
+
 	if (!astGetI(new_sky_polygon, "Bounded"))
 		astNegate(new_sky_polygon);
 
-	free(points);
-	
-	AstRegion *skybox2 = astMapRegion(new_polygon, wcsinfo, wcsinfo) ;
+	// Create a frame that we will standardize on (ICRS, J2000), then a mapping
+	// between whatever was in the FITS file to this frame.
+	//
+	AstSkyFrame *icrsframe = astSkyFrame("System=ICRS,Equinox=J2000.0");
+	AstFrameSet *fits_to_icrs = astConvert(astGetFrame(wcsinfo, AST__CURRENT), icrsframe, "");
+
+	// Map the new polygon to the standard frame.
+	//
+	AstRegion *skybox2 = astMapRegion(new_sky_polygon,	// AstRegion - region to convert
+									  fits_to_icrs,		// AstMapping - mapping between frames
+									  icrsframe);		// AstFrame - frame to map to
 	//astShow(new_polygon);
 
 	// this point is inside the region
-	//const double x_in = deg2rad(83.91931218); // deg
-	//const double y_in = deg2rad(-5.32360392); // deg
+	const double x_in = deg2rad(83.91931218); // deg
+	const double y_in = deg2rad(-5.32360392); // deg
 
-	// this point is outside the region
-	const double x_in = deg2rad(120.0);
-	const double y_in = deg2rad(45.0);
+	// this point is outside the region (frame-g-006073-4-0063.fits)
+	//const double x_in = deg2rad(120.0);
+	//const double y_in = deg2rad(45.0);
 
 	double x_out, y_out;
 
@@ -269,7 +272,7 @@ int main() {
 	
 	//printf("Is bounded: %s\n", astGetI(new_polygon, "Bounded") == 0 ? "False" : "True");
 		
-	astTran2(new_sky_polygon,	// region as mapping (will be a unit map)
+	astTran2(skybox2,	// region as mapping (will be a unit map)
 			 1, 			// npoints to be transformed
 			 &x_in,			// An array of "npoint" X-coordinate values for the input (untransformed) points
 			 &y_in,			// An array of "npoint" Y-coordinate values for the input (untransformed) points

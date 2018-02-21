@@ -42,7 +42,26 @@ ereport(NOTICE,
 		);
 ```
 
+And for an even longer version:
+
+```c
+ereport(ERROR,
+            (
+             errcode(ERRCODE_NUMERIC_VALUE_OUT_OF_RANGE),
+             errmsg("negative values are not allowed"),
+             errdetail("value %d is negative", arg),
+             errhint("make it positive")
+            )
+        );
+```
+
 The settings in `postgresql.conf` determines which level of log messages are sent to the client and/or the server log. The details can be found [here](https://www.postgresql.org/docs/9.4/static/runtime-config-logging.html#RUNTIME-CONFIG-LOGGING-WHEN).
+
+For example, to view `DEBUG1` messages and higher (less verbose) in the client (e.g. `psql`), place this line in `postgresql.conf` and restart the server:
+
+```
+client_min_messages = debug1
+```
 
 ### Useful Links
 
