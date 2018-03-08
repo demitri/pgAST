@@ -55,6 +55,8 @@ ereport(ERROR,
         );
 ```
 
+See [this blog post](http://big-elephants.com/2015-10/writing-postgres-extensions-part-iii/) for more detail.
+
 The settings in `postgresql.conf` determines which level of log messages are sent to the client and/or the server log. The details can be found [here](https://www.postgresql.org/docs/9.4/static/runtime-config-logging.html#RUNTIME-CONFIG-LOGGING-WHEN).
 
 For example, to view `DEBUG1` messages and higher (less verbose) in the client (e.g. `psql`), place this line in `postgresql.conf` and restart the server:
