@@ -24,7 +24,7 @@ MODULE_big = pgast
 # Include AST library
 # -------------------
 # flags to add to CPPFLAGS
-AST = /usr/custom/ast-8.6.2
+AST = /usr/custom/ast
 AST_LIB = $(AST)/lib
 
 PG_CPPFLAGS += -I$(AST)/include -std=c99

@@ -117,7 +117,7 @@ wcs_test(PG_FUNCTION_ARGS)
 	AstFitsChan *fitschan;
 	AstFrameSet *wcsinfo;
 	AstFrame *frame;
-	int issky;
+	int32_t issky;
 	
 	/* initialize AST status */
 //	status = 0;
