@@ -1,4 +1,5 @@
 # Starlink AST PostgreSQL extension
-comment = 'comment'
+comment = 'Starlink AST library plugin by Demitri Muna'
 default_version = '1.0.0'
 relocatable = true
+module_pathname = '$libdir/pgast'

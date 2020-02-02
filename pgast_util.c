@@ -38,7 +38,7 @@ void pgarray_to_double_array(ArrayType *array, double *data, int *nelements)
   					  &null_flags,
   					  &nelements);
 
-	data = (double*)palloc(n * sizeof(double);
+	data = (double*)palloc(nelements * sizeof(double);
 	
   	switch (data_type) {
   	/*

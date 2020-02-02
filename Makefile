@@ -24,8 +24,8 @@ MODULE_big = pgast
 # Include AST library
 # -------------------
 # flags to add to CPPFLAGS
-AST = /usr/custom/ast
-AST_LIB = $(AST)/lib
+AST      = /usr/local/ast
+AST_LIB  = $(AST)/lib
 
 PG_CPPFLAGS += -I$(AST)/include -std=c99
 
@@ -49,7 +49,7 @@ SHLIB_LINK = $(AST_LIB)/libast.a $(AST_LIB)/libast_grf3d.a $(AST_LIB)/libast_err
 # This line is added to the cc linker.
 # PG_LIBS = somelib.a anotherlib.a
 
-OBJS = _pgast_pgast.o _pgast_header2polygon.o
+OBJS = pgast_pgast.o pgast_header2polygon.o pgast_custom.o pgast_getregiondisc.o
 
 # -----------------------------------------------------
 

@@ -3,7 +3,8 @@
 
 #include "ast.h" // Starlink AST library header
 //#include "postgres.h"
-#include "_pgast_pgast.h"
+#include "pgast_pgast.h"
+#include "pgast_header2polygon.h"
 
 //#define deg2rad(angleDegrees) ((angleDegrees) * M_PI / 180.0)
 //#define rad2deg(angleRadians) ((angleRadians) * 180.0 / M_PI)

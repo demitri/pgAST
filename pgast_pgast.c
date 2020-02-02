@@ -4,9 +4,10 @@
 #include <string.h>
 
 /* include AST libraries */
-#include "ast.h"
+//#include "ast.h"
 
-#include "_pgast_pgast.h"
+#include "pgast.h"  //pgast_pgast.h"
+#include "pgast_custom.h"
 
 /* include PostgreSQL library and PG macro definitions */
 //#include "postgres.h"
@@ -55,6 +56,7 @@ point_in_polygon(PG_FUNCTION_ARGS) // (text fits_header, points[] polygon)
 }
 */
 
+/*
 PG_FUNCTION_INFO_V1(point_in_polygon);
 Datum
 point_in_polygon(PG_FUNCTION_ARGS) // (text fits_header)
@@ -87,17 +89,15 @@ point_in_polygon(PG_FUNCTION_ARGS) // (text fits_header)
 	
 	PG_RETURN_BOOL(ra_out == AST__BAD ? 0 : 1);
 
-/*
-	if (x_out == AST__BAD) {
-		// point is outside of region
-		PG_RETURN_BOOL(0);
-	} else {
-		//	point is inside of region
-		PG_RETURN_BOOL(1);
-	}
-	*/
+//	if (x_out == AST__BAD) {
+//		// point is outside of region
+//		PG_RETURN_BOOL(0);
+//	} else {
+//		//	point is inside of region
+//		PG_RETURN_BOOL(1);
+//	}
 }
-
+*/
 
 
 // ----------------------------------------------------------------
