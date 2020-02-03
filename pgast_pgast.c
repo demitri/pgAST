@@ -8,11 +8,12 @@
 
 #include "pgast.h"  //pgast_pgast.h"
 #include "pgast_custom.h"
+#include "pgast_getregiondisc.h"
 
 /* include PostgreSQL library and PG macro definitions */
 //#include "postgres.h"
 //#include "fmgr.h"
-#include "utils/builtins.h"
+//#include "utils/builtins.h"
 
 #ifdef PG_MODULE_MAGIC
 PG_MODULE_MAGIC;
@@ -56,22 +57,26 @@ point_in_polygon(PG_FUNCTION_ARGS) // (text fits_header, points[] polygon)
 }
 */
 
-/*
-PG_FUNCTION_INFO_V1(point_in_polygon);
+
+PG_FUNCTION_INFO_V1(pgast_point_in_polygon);
 Datum
-point_in_polygon(PG_FUNCTION_ARGS) // (text fits_header)
+pgast_point_in_polygon(PG_FUNCTION_ARGS) // (text fits_header)
 {
 	// get function args
-	char* fits_header;
+	char* fits_header = text_to_cstring(PG_GETARG_TEXT_PP(0)); // return a null-terminated C string
 	double ra  = PG_GETARG_FLOAT8(1); // in degrees
 	double dec = PG_GETARG_FLOAT8(2); // in degrees
 
+	// internal variables
 	double ra_out, dec_out;
 	
-	// create a null-terminated C string from a PostgreSQL text value
-	fits_header = text_to_cstring(PG_GETARG_TEXT_P(0));
+	//fprintf(stderr, "\nread: (%.4f, %.4f) %s\n", ra, dec, fits_header);
 	
 	AstPolygon *sky_polygon = fitsheader2polygon(fits_header);
+	if (sky_polygon == AST__NULL) {
+		// for example, incomplete FITS header or header does not contain WCS, image, etc.
+		PG_RETURN_NULL();
+	}
 		
 	// convert to radians
 	ra = deg2rad(ra);
@@ -97,7 +102,7 @@ point_in_polygon(PG_FUNCTION_ARGS) // (text fits_header)
 //		PG_RETURN_BOOL(1);
 //	}
 }
-*/
+
 
 
 // ----------------------------------------------------------------
@@ -123,7 +128,7 @@ wcs_test(PG_FUNCTION_ARGS)
 //	status = 0;
 	
 	astBegin;
-
+	
 	/* add all cards at once as a string */
 	/*
 	astFitsChan(source, sink, encoding)

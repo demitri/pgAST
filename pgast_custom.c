@@ -8,16 +8,21 @@
 
 #include <stdlib.h>
 #include "pgast_custom.h"
+#include "pgast_header2polygon.h"
 
 AstPolygon* pgast_polygon_from_fitschan(AstFitsChan *fitsChan) //, AstPolygon **new_polygon)
 {
+	int success;
+	int dim1, dim2;
+	double *mesh_points;
+	AstFitsChan *fitsChanCopy;
+	
 	astBegin;
 	
-	int success;
 	//new_polygon = AST__NULL;
 
 	// copy the provided fitsChan to avoid modifing the provided one
-	AstFitsChan *fitsChanCopy = astCopy(fitsChan);
+	fitsChanCopy = astCopy(fitsChan);
 	
 	// read the WCS from the header
 	AstFrameSet *wcsinfo = astRead( fitsChanCopy );
@@ -32,7 +37,6 @@ AstPolygon* pgast_polygon_from_fitschan(AstFitsChan *fitsChan) //, AstPolygon **
 	}
 	  
 	// get the image dimensions
-	int dim1, dim2;
 	success = astGetFitsI(fitsChanCopy, "NAXIS1", &dim1);
 	if (success == 0) {
 		astEnd;
@@ -76,7 +80,7 @@ AstPolygon* pgast_polygon_from_fitschan(AstFitsChan *fitsChan) //, AstPolygon **
 					 NULL);		// ignored
 
 	// allocate points array of dimension: [maxcoord][npoints]
-	double *mesh_points = (double*)malloc(maxcoord*npoints * sizeof(double));
+	mesh_points = (double*)malloc(maxcoord*npoints * sizeof(double));
 
 	maxpoint = npoints; // length of second dimension of points array
 

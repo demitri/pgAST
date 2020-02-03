@@ -5,7 +5,7 @@ CREATE  OR REPLACE FUNCTION wcs_test() RETURNS integer
 AS '$libdir/pgast'
 LANGUAGE C IMMUTABLE STRICT;
 
-CREATE OR REPLACE FUNCTION point_in_polygon(text, float, float) RETURNS boolean
+CREATE OR REPLACE FUNCTION pgast_point_in_polygon(text, float, float) RETURNS boolean
 AS '$libdir/pgast'
 LANGUAGE C IMMUTABLE STRICT;
 

@@ -24,10 +24,13 @@ MODULE_big = pgast
 # Include AST library
 # -------------------
 # flags to add to CPPFLAGS
-AST      = /usr/local/ast
+AST      = /usr/custom/ast
 AST_LIB  = $(AST)/lib
 
-PG_CPPFLAGS += -I$(AST)/include -std=c99
+# Adding '-Wno-format-zero-length' since AST can take empty strings as parameters
+# Adding '-Wno-declaration-after-statement' since -std=c99 doesn't seem to turn on C99 on Linux
+#
+PG_CPPFLAGS += -I$(AST)/include -std=c99 -Wall -Wno-declaration-after-statement '-Wno-format-zero-length'
 
 # CFLAGS_SL
 # ---------
