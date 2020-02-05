@@ -3,18 +3,10 @@
 //#include <math.h>
 #include <string.h>
 
-/* include AST libraries */
-//#include "ast.h"
-
-#include "pgast.h"  //pgast_pgast.h"
+#include "pgast.h"
 #include "pgast_custom.h"
 #include "pgast_getregiondisc.h"
 #include "pgast_util.h"
-
-/* include PostgreSQL library and PG macro definitions */
-//#include "postgres.h"
-//#include "fmgr.h"
-//#include "utils/builtins.h"
 
 #ifdef PG_MODULE_MAGIC
 PG_MODULE_MAGIC;
@@ -32,7 +24,7 @@ PG_MODULE_MAGIC;
 
 PG_FUNCTION_INFO_V1(pgast_point_in_polygon_poly);
 Datum
-pgast_point_in_polygon_poly(PG_FUNCTION_ARGS) // (text fits_header, points[] polygon)
+pgast_point_in_polygon_poly(PG_FUNCTION_ARGS) // (text fits_header, float8 ra, float8 dec)
 {
 	// get function args
 	// -----------------

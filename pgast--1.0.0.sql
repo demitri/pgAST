@@ -15,7 +15,7 @@ CREATE OR REPLACE FUNCTION pgast_point_in_polygon(polygon, double precision, dou
 AS 'MODULE_PATHNAME', 'pgast_point_in_polygon_poly'
 LANGUAGE C IMMUTABLE STRICT;
 
---CREATE OR REPLACE FUNCTION pgast_bounding_circle(text) RETURNS ??
+CREATE OR REPLACE FUNCTION pgast_bounding_circle(text) RETURNS CIRCLE
 -- (text fits_header_as_string)
---AS '$libdir/pgast'
---LANGUAGE C IMMUTABLE STRICT;
+AS 'MODULE_PATHNAME', 'pgast_bounding_circle_header'
+LANGUAGE C IMMUTABLE STRICT;
