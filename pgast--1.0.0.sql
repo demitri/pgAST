@@ -19,3 +19,7 @@ CREATE OR REPLACE FUNCTION pgast_bounding_circle(text) RETURNS CIRCLE
 -- (text fits_header_as_string)
 AS 'MODULE_PATHNAME', 'pgast_bounding_circle_header'
 LANGUAGE C IMMUTABLE STRICT;
+
+CREATE OR REPLACE FUNCTION pgast_bounding_circle(polygon) RETURNS CIRCLE
+AS 'MODULE_PATHNAME', 'pgast_bounding_circle_polygon'
+LANGUAGE C IMMUTABLE STRICT;

@@ -24,7 +24,7 @@ PG_MODULE_MAGIC;
 
 PG_FUNCTION_INFO_V1(pgast_point_in_polygon_poly);
 Datum
-pgast_point_in_polygon_poly(PG_FUNCTION_ARGS) // (text fits_header, float8 ra, float8 dec)
+pgast_point_in_polygon_poly(PG_FUNCTION_ARGS) // (polygon polygon, float8 ra, float8 dec)
 {
 	// get function args
 	// -----------------
@@ -57,15 +57,14 @@ pgast_point_in_polygon_poly(PG_FUNCTION_ARGS) // (text fits_header, float8 ra, f
 	astBegin;
 	
 	AstSkyFrame *icrsFrame = astSkyFrame("System=ICRS, Equinox=J2000"); // naxes, options
-#pragma GCC diagnostic ignored "-Wformat-zero-length"
 #pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wformat-zero-length"
 	AstPolygon *ast_polygon = astPolygon(icrsFrame,		// AstFrame
 										n_vert,			// number of points in region
 										n_vert,			// dimension along second axis [2][n]
 										points_array,	// points array
 										NULL,			// uncertainty
 										"");			// options
-#pragma GCC diagnostic ignored "-Wformat-zero-length"
 #pragma GCC diagnostic pop
 
 	// convert to radians
@@ -170,8 +169,8 @@ wcs_test(PG_FUNCTION_ARGS)
 		sink: NULL -> not needed
 		options:
 	*/
-#pragma GCC diagnostic ignored "-Wformat-zero-length"
 #pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wformat-zero-length"
 	fitschan = astFitsChan( NULL, NULL, ""); /* create an empty channel */
 #pragma GCC diagnostic pop
 

@@ -2,6 +2,28 @@
 #include "pgast.h"
 #include "pgast_util.h"
 
+/*
+ Convert a POLYGON object to an array of points suitable to
+ be passed to AST classes. This function assumes:
+ 
+ * points are in degrees
+ * the points array has been preallocated
+
+ */
+void pgpolygon2astPoints(POLYGON *polygon, double *points)
+{
+	int n_vert = polygon->npts; // number of vertices/coordinate pairs (i.e. Point)
+	Point *polygon_points = polygon->p;
+	
+	//points = (double*)palloc(n_vert * 2 * sizeof(double));
+	for (int i=0; i < n_vert; i++) {
+		//fprintf(stderr, "p%d: (%0.4f, %0.4f)\n", i, (points[i]).x, (points[i]).y);
+		points[i] = deg2rad((polygon_points[i]).x);
+		points[n_vert + i] = deg2rad((polygon_points[i]).y);
+	}
+}
+
+/*
 void pgarray_to_double_array(ArrayType *array, double *data, int *nelements)
 {
 	Oid data_type;	
@@ -42,14 +64,12 @@ void pgarray_to_double_array(ArrayType *array, double *data, int *nelements)
 	data = (double*)palloc(nelements * sizeof(double);
 	
   	switch (data_type) {
-  	/*
-  		case NUMERICOID:
-  			for (uint32_t i=0; i < n; i++) {
-  				double v = DatumGetFloat8(data[i]);
-  				ereport(DEBUG1, (errmsg("d[%d] = %f", i, v)));
-  			}
-  			break;
-*/
+//  		case NUMERICOID:
+//  			for (uint32_t i=0; i < n; i++) {
+//  				double v = DatumGetFloat8(data[i]);
+//  				ereport(DEBUG1, (errmsg("d[%d] = %f", i, v)));
+//  			}
+//  			break;
 
   		case INT2OID:
   			for (uint32_t i=0; i < n; i++) {
@@ -91,3 +111,5 @@ void pgarray_to_double_array(ArrayType *array, double *data, int *nelements)
 			break;
 	}	
 }
+*/
+

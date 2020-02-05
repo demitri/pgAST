@@ -53,7 +53,7 @@ SHLIB_LINK = $(AST_LIB)/libast.a $(AST_LIB)/libast_grf3d.a $(AST_LIB)/libast_err
 # This line is added to the cc linker.
 # PG_LIBS = somelib.a anotherlib.a
 
-OBJS = pgast_pgast.o pgast_header2polygon.o pgast_custom.o pgast_getregiondisc.o pgast_bounding_circle.o
+OBJS = pgast_pgast.o pgast_header2polygon.o pgast_custom.o pgast_getregiondisc.o pgast_bounding_circle.o pgast_util.o
 
 # -----------------------------------------------------
 
