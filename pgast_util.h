@@ -1,0 +1,7 @@
+
+#ifndef __PGGAST_UTIL_H__
+#define __PGGAST_UTIL_H__
+
+void pgarray_to_double_array(ArrayType *array, double *data, int *nelements);
+
+#endif /* __PGGAST_UTIL_H__ */

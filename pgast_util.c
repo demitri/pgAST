@@ -1,5 +1,6 @@
 
-#include "_pgast_pgast.h"
+#include "pgast.h"
+#include "pgast_util.h"
 
 void pgarray_to_double_array(ArrayType *array, double *data, int *nelements)
 {

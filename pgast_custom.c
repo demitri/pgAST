@@ -52,7 +52,11 @@ AstPolygon* pgast_polygon_from_fitschan(AstFitsChan *fitsChan) //, AstPolygon **
 	const double point2[] = {dim1+0.5, dim2+0.5};
 	const char *options = "";
 
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wformat-security"
+#pragma GCC diagnostic ignored "-Wformat-zero-length"
 	AstBox *pixelbox = astBox(astGetFrame(wcsinfo, AST__BASE), 1, point1, point2, AST__NULL, options);
+#pragma GCC diagnostic pop
 	
 	AstFrame *skyFrame = astGetFrame(wcsinfo, AST__CURRENT);
 	if (astIsASkyFrame(skyFrame) == 0) {
@@ -96,12 +100,16 @@ AstPolygon* pgast_polygon_from_fitschan(AstFitsChan *fitsChan) //, AstPolygon **
 	// Create a new polygon from the 2D mesh points
 	//
 	AstFrame *basic_frame = astFrame(2, "unit(1)=deg,unit(2)=deg"); // # of axes, options
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wformat-security"
+#pragma GCC diagnostic ignored "-Wformat-zero-length"
 	AstPolygon *flat_polygon = astPolygon(basic_frame, //astGetFrame(wcsinfo, AST__BASE), // frame is copied
 										  npoints,	// number of points in region
 										  npoints, // dim - number of elements along the second dimension of the "points" array
 										  mesh_points,	// 2D array of mesh points
 										  AST__NULL, // uncertainty
 										  "");		// options
+	#pragma GCC diagnostic pop
 
 	free(mesh_points);
 

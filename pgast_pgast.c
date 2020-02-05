@@ -9,6 +9,7 @@
 #include "pgast.h"  //pgast_pgast.h"
 #include "pgast_custom.h"
 #include "pgast_getregiondisc.h"
+#include "pgast_util.h"
 
 /* include PostgreSQL library and PG macro definitions */
 //#include "postgres.h"
@@ -21,63 +22,108 @@ PG_MODULE_MAGIC;
 #error "PG_MODULE_MAGIC wasn't defined!"
 #endif
 
-//#define deg2rad(angleDegrees) ((angleDegrees) * M_PI / 180.0)
-//#define rad2deg(angleRadians) ((angleRadians) * 180.0 / M_PI)
+// ereport() Ref: https://www.postgresql.org/docs/current/error-message-reporting.html
+// see: src/include/utils/elog.h
+// Error level codes:
+//	DEBUG5, DEBUG4, DEBUG3, DEBUG2, DEBUG1 (most to least verbose)
+//	LOG, LOG_SERVER_ONLY
+//	INFO, NOTICE, WARNING, ERROR, FATAL, PANIC
+// https://www.postgresql.org/docs/current/runtime-config-logging.html#RUNTIME-CONFIG-SEVERITY-LEVELS
 
-/*
-PG_FUNCTION_INFO_V1(point_in_polygon);
+PG_FUNCTION_INFO_V1(pgast_point_in_polygon_poly);
 Datum
-point_in_polygon(PG_FUNCTION_ARGS) // (text fits_header, points[] polygon)
+pgast_point_in_polygon_poly(PG_FUNCTION_ARGS) // (text fits_header, points[] polygon)
 {
 	// get function args
-	char* fits_header = PG_GETARG_CSTRING(0);
-	char* polygon = PG_GETARG_CSTRING(0);
+	// -----------------
+	POLYGON *polygon;
+	if (PG_ARGISNULL(0)) {
+		PG_RETURN_NULL();
+		//ereport(ERROR, (errmsg("pgAST: The polygon parameter must not be NULL.")));
+	} else
+		polygon = PG_GETARG_POLYGON_P(0);
 	
-	// Convert "polygon" string to an array of double values.
-	unsigned int n_points;
+	double ra  = PG_GETARG_FLOAT8(1); // ra, degrees
+	double dec = PG_GETARG_FLOAT8(2); // dec, degrees
+
+	// internal variables
+	// ------------------
+	int point_in_region;
+	double ra_out, dec_out;
+	Point *points = polygon->p;
+	int n_vert = polygon->npts; // number of vertices/coordinate pairs (i.e. Point)
 	
-	double *points = malloc(2.0 * n_points * sizeof(double));
+	// AST needs the points in the shape [2][n_coords] (but really 1D):
+	//  [x1, x2, x3, ..., xn, y1, y2, y3, ..., yn]
+	double *points_array = (double*)palloc(n_vert * 2 * sizeof(double));
+	for (int i=0; i < n_vert; i++) {
+		fprintf(stderr, "p%d: (%0.4f, %0.4f)\n", i, (points[i]).x, (points[i]).y);
+		points_array[i] = deg2rad((points[i]).x);
+		points_array[n_vert + i] = deg2rad((points[i]).y);
+	}
 	
-	// Get the WCS from the header
-	// ---------------------------
-	AstFitsChan *fits_chan = astFitsChan(NULL, NULL, "");
-	astPutCards(fits_chan, header); // add all cards at once
+	astBegin;
 	
-	AstFrameSet *wcs_frames = astRead(fits_chan);
-	AstFrame *sky_frame = astGetFrame(wcs_frames, AST__CURRENT);
-	
-	// Create AstRegion from FITS header and points
+	AstSkyFrame *icrsFrame = astSkyFrame("System=ICRS, Equinox=J2000"); // naxes, options
+#pragma GCC diagnostic ignored "-Wformat-zero-length"
+#pragma GCC diagnostic push
+	AstPolygon *ast_polygon = astPolygon(icrsFrame,		// AstFrame
+										n_vert,			// number of points in region
+										n_vert,			// dimension along second axis [2][n]
+										points_array,	// points array
+										NULL,			// uncertainty
+										"");			// options
+#pragma GCC diagnostic ignored "-Wformat-zero-length"
+#pragma GCC diagnostic pop
+
+	// convert to radians
+	ra = deg2rad(ra);
+	dec = deg2rad(dec);
+
+	// test if point is in polygon
 	//
-	int npoints;
-	double *polygon;
+	astTran2(ast_polygon,	// region as mapping (will be a unit map)
+			 1, 		// npoints to be transformed
+			 &ra,		// An array of "npoint" X-coordinate values for the input (untransformed) points
+			 &dec,		// An array of "npoint" Y-coordinate values for the input (untransformed) points
+			 1,			// forward = 1, inverse = 0
+			 &ra_out,	// array with npoint elements for output
+			 &dec_out);	// array with npoint elements for output
 	
-	AstRegion *sky_polygon = fitsheader2polygon(header, polygon, &npoints);
+	point_in_region = (ra_out == AST__BAD ? 0 : 1);
+
+	//fprintf(stderr, "(%.4f, %.4f)\n", ra_out, dec_out);
+
+	astEnd;
 	
-	
+	PG_RETURN_BOOL(point_in_region);
 }
-*/
 
-
-PG_FUNCTION_INFO_V1(pgast_point_in_polygon);
+PG_FUNCTION_INFO_V1(pgast_point_in_polygon_header);
 Datum
-pgast_point_in_polygon(PG_FUNCTION_ARGS) // (text fits_header)
+pgast_point_in_polygon_header(PG_FUNCTION_ARGS) // (text fits_header, float ra, float dec)
 {
 	// get function args
 	char* fits_header = text_to_cstring(PG_GETARG_TEXT_PP(0)); // return a null-terminated C string
-	double ra  = PG_GETARG_FLOAT8(1); // in degrees
-	double dec = PG_GETARG_FLOAT8(2); // in degrees
+	double ra  = PG_GETARG_FLOAT8(1); // ra, degrees
+	double dec = PG_GETARG_FLOAT8(2); // dec, degrees
 
 	// internal variables
+	int point_in_region;
 	double ra_out, dec_out;
 	
+	//ereport(DEBUG5, (errmsg("pgast_point_in_polygon_header called")));
 	//fprintf(stderr, "\nread: (%.4f, %.4f) %s\n", ra, dec, fits_header);
+	
+	astBegin;
 	
 	AstPolygon *sky_polygon = fitsheader2polygon(fits_header);
 	if (sky_polygon == AST__NULL) {
 		// for example, incomplete FITS header or header does not contain WCS, image, etc.
+		astEnd;
 		PG_RETURN_NULL();
 	}
-		
+	
 	// convert to radians
 	ra = deg2rad(ra);
 	dec = deg2rad(dec);
@@ -92,15 +138,11 @@ pgast_point_in_polygon(PG_FUNCTION_ARGS) // (text fits_header)
 			 &ra_out,		// array with npoint elements for output
 			 &dec_out);		// array with npoint elements for output
 	
-	PG_RETURN_BOOL(ra_out == AST__BAD ? 0 : 1);
-
-//	if (x_out == AST__BAD) {
-//		// point is outside of region
-//		PG_RETURN_BOOL(0);
-//	} else {
-//		//	point is inside of region
-//		PG_RETURN_BOOL(1);
-//	}
+	point_in_region = (ra_out == AST__BAD ? 0 : 1);
+	
+	astEnd;
+	
+	PG_RETURN_BOOL(point_in_region);
 }
 
 
@@ -137,8 +179,9 @@ wcs_test(PG_FUNCTION_ARGS)
 		options:
 	*/
 #pragma GCC diagnostic ignored "-Wformat-zero-length"
+#pragma GCC diagnostic push
 	fitschan = astFitsChan( NULL, NULL, ""); /* create an empty channel */
-#pragma GCC diagnostic warning "-Wformat-zero-length"
+#pragma GCC diagnostic pop
 
 	astPutCards( fitschan, header ); /* add all cards at once */
 	

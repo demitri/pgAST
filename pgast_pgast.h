@@ -5,8 +5,13 @@
 /* include PostgreSQL library and PG macro definitions */
 #include "postgres.h"
 #include "fmgr.h"
+#include "utils/array.h"
 
+// lib includes
 #include <math.h>
+
+// local headers
+#include "pgast_macros.h"
 
 #define deg2rad(angleDegrees) ((angleDegrees) * M_PI / 180.0)
 #define rad2deg(angleRadians) ((angleRadians) * 180.0 / M_PI)

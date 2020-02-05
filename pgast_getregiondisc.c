@@ -14,7 +14,12 @@ pgast_getregiondisc(PG_FUNCTION_ARGS)
 	
 	astBegin;
 	
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wformat-security"
+#pragma GCC diagnostic ignored "-Wformat-zero-length"
 	AstFitsChan *fitschan = astFitsChan( NULL, NULL, ""); /* create an empty channel */
+#pragma GCC diagnostic pop
+	
 	astPutCards( fitschan, fits_header ); /* add all cards at once */
 
 	AstFrame *wcsinfo = astRead( fitschan );
