@@ -23,3 +23,9 @@ LANGUAGE C IMMUTABLE STRICT;
 CREATE OR REPLACE FUNCTION pgast_bounding_circle(polygon) RETURNS CIRCLE
 AS 'MODULE_PATHNAME', 'pgast_bounding_circle_polygon'
 LANGUAGE C IMMUTABLE STRICT;
+
+-- Return a PostgreSQL "polygon" object that bounds the region defined by
+-- the provided FITS header (as a single string).
+CREATE OR REPLACE FUNCTION pgast_bounding_polygon(text) RETURNS POLYGON
+AS 'MODULE_PATHNAME', 'pgast_bounding_polygon'
+LANGUAGE C IMMUTABLE STRICT;

@@ -26,7 +26,7 @@ AstPolygon* pgast_polygon_from_fitschan(AstFitsChan *fitsChan) //, AstPolygon **
 	
 	// read the WCS from the header
 	AstFrameSet *wcsinfo = astRead( fitsChanCopy );
-
+	
 	// check if the fitsChan contains a 2D image
 	// TODO: what other checks should be performed - if any? (e.g. leave to fail later?)
 	int naxes;
@@ -37,13 +37,14 @@ AstPolygon* pgast_polygon_from_fitschan(AstFitsChan *fitsChan) //, AstPolygon **
 	}
 	  
 	// get the image dimensions
-	success = astGetFitsI(fitsChanCopy, "NAXIS1", &dim1);
-	if (success == 0) {
+	//
+	success = astGetFitsI(fitsChanCopy, "NAXIS1", &dim1); // returns 0 if not found, 1 otherwise
+	if (success == 0 || dim1 < 2) {
 		astEnd;
 		return 0;
 	}
 	success = astGetFitsI(fitsChanCopy, "NAXIS2", &dim2);
-	if (success == 0) {
+	if (success == 0 || dim2 < 2) {
 		astEnd;
 		return 0;
 	}
@@ -109,7 +110,7 @@ AstPolygon* pgast_polygon_from_fitschan(AstFitsChan *fitsChan) //, AstPolygon **
 										  mesh_points,	// 2D array of mesh points
 										  AST__NULL, // uncertainty
 										  "");		// options
-	#pragma GCC diagnostic pop
+#pragma GCC diagnostic pop
 
 	free(mesh_points);
 

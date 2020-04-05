@@ -25,7 +25,8 @@ pgast_bounding_circle_header(PG_FUNCTION_ARGS) // (text fits_header)
 	
 	astBegin;
 
-	AstPolygon *sky_polygon = fitsheader2polygon(fits_header);
+	int npoints;
+	AstPolygon *sky_polygon = fitsheader2polygon(fits_header, &npoints);
 	if (sky_polygon == AST__NULL) {
 		// for example, incomplete FITS header or header does not contain WCS, image, etc.
 		astEnd;

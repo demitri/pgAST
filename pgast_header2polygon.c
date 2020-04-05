@@ -9,14 +9,16 @@
 //#define deg2rad(angleDegrees) ((angleDegrees) * M_PI / 180.0)
 //#define rad2deg(angleRadians) ((angleRadians) * 180.0 / M_PI)
 
-
-AstPolygon* fitsheader2polygon(const char *header) //, double *polygon, int *npoints)
+AstPolygon* fitsheader2polygon(const char *header, int *npoints) //, double *polygon, int *npoints)
 {
 	//int npoints;
 	
 	// Inputs
 	// ------
 	// header  : FITS header as single string
+	//
+	// Outputs
+	// -------
 	// polygon : 
 	// npoints : number of points in the resulting polygon 
 
@@ -49,10 +51,12 @@ AstPolygon* fitsheader2polygon(const char *header) //, double *polygon, int *npo
 	astBegin;
 	
 	// Create an empty FITS channel (AST object that holds a FITS header)
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wformat-security"
 #pragma GCC diagnostic ignored "-Wformat-zero-length"
 	fitsChan = astFitsChan( NULL, NULL, "");
+#pragma GCC diagnostic pop
 	astPutCards( fitsChan, header ); // add all cards at once
-#pragma GCC diagnostic warning "-Wformat-zero-length"
 	
 	// Read the WCS info from the header
 	wcs_frames = astRead(fitsChan);
@@ -72,17 +76,31 @@ AstPolygon* fitsheader2polygon(const char *header) //, double *polygon, int *npo
 	// the pixel frame and the "sky" frame.
 	pixel_frame = astGetFrame(wcs_frames, AST__BASE);
 	sky_frame = astGetFrame(wcs_frames, AST__CURRENT);
+	if (astIsASkyFrame(sky_frame) == 0) { // returns 1 if yes, 0 if no
+		astEnd;
+		return AST__NULL;
+	}
 	
 	// get the image dimensions, read from header
 	{
+		int naxes;
 		int success;
-		success = astGetFitsI(fitsChan, "NAXIS1", &dim1);
-		if (success != 1) {
+		success = astGetFitsI(fitsChan, "NAXIS1", &naxes); // returns 0 if not found, 1 otherwise
+		if (success == 0 || naxes != 2) {
 			ereport(DEBUG1, (errmsg("Error: astGetFits did not find 'NAXIS1' keyword.")));
+			astEnd;
+			return AST__NULL;
 		}
+		success = astGetFitsI(fitsChan, "NAXIS1", &dim1);
+		if (success == 0 || dim1 < 2) {
+			ereport(DEBUG1, (errmsg("Error: astGetFits did not find 'NAXIS1' keyword.")));
+			astEnd;
+			return AST__NULL;		}
 		success = astGetFitsI(fitsChan, "NAXIS2", &dim2);
-		if (success != 1) {
+		if (success == 0 || dim2 < 2) {
 			ereport(DEBUG1, (errmsg("Error: astGetFits did not find 'NAXIS2' keyword.")));
+			astEnd;
+			return AST__NULL;
 		}
 	}
 	// Create a "box" object that covers the extent of the
@@ -91,6 +109,8 @@ AstPolygon* fitsheader2polygon(const char *header) //, double *polygon, int *npo
 	{
 		const double point1[] = {0.5, 0.5};
 		const double point2[] = {dim1+0.5, dim2+0.5};
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wformat-security"
 #pragma GCC diagnostic ignored "-Wformat-zero-length"
 		pixelbox = astBox(pixel_frame,
 						  1,
@@ -98,8 +118,8 @@ AstPolygon* fitsheader2polygon(const char *header) //, double *polygon, int *npo
 						  point2,
 						  AST__NULL,
 						  ""); // no options needed
-#pragma GCC diagnostic warning "-Wformat-zero-length"
-	}							  
+#pragma GCC diagnostic pop
+	}
 	// Map the box in the pixel frame onto the sky frame.
 	// The function knows to go from pixels-> sky
 	// since that is the frame 'pixelbox' is in.
@@ -154,6 +174,8 @@ AstPolygon* fitsheader2polygon(const char *header) //, double *polygon, int *npo
 	// [x1, x2, ..., xn, y1, y2, ..., yn] in RADIANS.
 	// (or more specifically, [ra1, ..., ran, dec1, ..., decn]
 	
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wformat-security"
 #pragma GCC diagnostic ignored "-Wformat-zero-length"
 	// Create a new polygon from the 2D mesh points
 	// in a flat (pixel) frame (i.e. Cartesean).
@@ -165,7 +187,7 @@ AstPolygon* fitsheader2polygon(const char *header) //, double *polygon, int *npo
 							  mesh_points,	// 2D array of mesh points
 							  AST__NULL,	// uncertainty
 							  "");			// options
-#pragma GCC diagnostic warning "-Wformat-zero-length"
+#pragma GCC diagnostic pop
 
 	pfree(mesh_points);
 	
@@ -206,8 +228,9 @@ AstPolygon* fitsheader2polygon(const char *header) //, double *polygon, int *npo
 	//	printf("deg = (%.9f, %.9f) | rad = (%.9f, %.9f)\n", rad2deg(points[i]), rad2deg(points[i+num_points]), points[i], points[i+num_points]); // (x, y)
 	//}
 
+#pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wformat-zero-length"
-
+#pragma GCC diagnostic ignored "-Wformat-security"
 	// Finally, create a new polygon in the sky frame with these points.
 	//
 	new_sky_polygon = astPolygon(sky_frame,
@@ -216,7 +239,7 @@ AstPolygon* fitsheader2polygon(const char *header) //, double *polygon, int *npo
 								 points,
 								 AST__NULL,
 								 "");
-#pragma GCC diagnostic warning "-Wformat-zero-length"
+#pragma GCC diagnostic pop
 
 	pfree(points);
 	
@@ -224,10 +247,10 @@ AstPolygon* fitsheader2polygon(const char *header) //, double *polygon, int *npo
 		astNegate(new_sky_polygon);
 		
 	// values to return
-	//*npoints = num_points;
+	*npoints = num_points;
 	//polygon = new_sky_polygon;
 	
-	return new_sky_polygon;
-	
 	astEnd;
+
+	return new_sky_polygon;
 }
