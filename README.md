@@ -3,10 +3,12 @@ The Starlink AST library as a PostgreSQL plugin.
 
 ### Building and Installing the Extension
 
+pgAST requires the [Starlink AST Library](https://github.com/Starlink/ast) to be installed. Note the path where this is installed to use for the `make` command (i.e. replace `/usr/local/ast` below with your location).
+
 From top level of PgAST directory:
 
 ```bash
-make clean; make
+make clean; make AST=/usr/local/ast
 sudo make install
 ```
 
