@@ -181,7 +181,7 @@ AstPolygon* fitsheader2polygon(const char *header, int *npoints) //, double *pol
 	// in a flat (pixel) frame (i.e. Cartesean).
 	//
 	basic_frame = astFrame(2, "unit(1)=deg,unit(2)=deg"); // # of axes, options
-	flat_polygon = astPolygon(basic_frame,
+	flat_polygon = astPolygon(basic_frame,	// frame is copied
 							  num_points,	// number of points in region
 							  num_points,	// dim - number of elements along 2nd dimension of points array
 							  mesh_points,	// 2D array of mesh points
@@ -198,6 +198,8 @@ AstPolygon* fitsheader2polygon(const char *header, int *npoints) //, double *pol
 	{
 		double max_downsize_err = 4.848e-6; // 1 arcsec in radians
 		reduced_flat_polygon = astDownsize(flat_polygon, max_downsize_err, 0);
+		
+		// This is not the final polygon; we want it in the sky frame.
 	}
 
 	// Get the points of this new reduced polygon.
@@ -209,7 +211,7 @@ AstPolygon* fitsheader2polygon(const char *header, int *npoints) //, double *pol
 					   0,						// maxpoint = 0, just return the point count
 					   maxcoord,				// ignored here
 					   &num_points,				// number of points needed
-					   NULL);
+					   NULL);					// NULL = just return number of points needed
 					   
 	// allocate points array
 	points = (double*)palloc(maxcoord*num_points * sizeof(double));
@@ -250,6 +252,7 @@ AstPolygon* fitsheader2polygon(const char *header, int *npoints) //, double *pol
 	*npoints = num_points;
 	//polygon = new_sky_polygon;
 	
+	astExport(new_sky_polygon);
 	astEnd;
 
 	return new_sky_polygon;

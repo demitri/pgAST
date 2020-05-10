@@ -1,15 +1,19 @@
 
+//#include "ast.h"
 #include "pgast.h"
 #include "pgast_util.h"
 
-/*
+/**
  Convert a POLYGON object to an array of points suitable to
  be passed to AST classes. This function assumes:
  
- - points are in degrees
+ - polygon points are in degrees
  - the points array has been preallocated
+ 
+ @param polygon
+ @points points a preallocated array
  */
-void pgpolygon2astPoints(POLYGON *polygon, double *points)
+void pgPolygon2astPoints(POLYGON *polygon, double *points)
 {
 	int n_vert = polygon->npts; // number of vertices/coordinate pairs (i.e. Point)
 	Point *polygon_points = polygon->p;
@@ -22,39 +26,50 @@ void pgpolygon2astPoints(POLYGON *polygon, double *points)
 	}
 }
 
-/*
+/**
 Convert a POLYGON object to an AstPolygon object. This function assumes:
     - points are in degrees
-    - the points array has been preallocated
+
+ @param polygon
+ @param frame an ASTSkyFrame; if NULL, assumes ICRS J2000
 */
-void pgpolygon2astPolygon(POLYGON *polygon, double *points, AstFrame *frame)
+AstPolygon* pgPolygon2astPolygon(POLYGON *polygon, AstSkyFrame *frame) //, double *points, AstFrame *frame)
 {
+	AstPolygon *ast_polygon;
+
+	double *points;
 	int n_vert = polygon->npts; // number of vertices/coordinate pairs (i.e. Point)
-	Point *polygon_points = polygon->p;
+//	Point *polygon_points = polygon->p;
 	
 	astBegin;
 	
-	AstFrame *local_frame = frame;
-	if (frame == AST_NULL) {
+	points = (double*)palloc(n_vert * 2 * sizeof(double));
+	pgPolygon2astPoints(polygon, points);
+	
+	AstSkyFrame *local_frame = frame; // not in the, you know, astro sense...
+	if (frame == AST__NULL) {
 		// no frame provided; create a basic frame
-		local_frame = astFrame(2, "unit(1)=deg,unit(2)=deg"); // # of axes, options
+		//local_frame = astFrame(2, "unit(1)=deg,unit(2)=deg"); // # of axes, options
+		local_frame = astSkyFrame("System=ICRS, Equinox=J2000");
 	}
 
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wformat-security"
 #pragma GCC diagnostic ignored "-Wformat-zero-length"
-	polygon = astPolygon(frame,				// frame region is defined
-						 n_vert,			// number of points in polygon
-						 n_vert,			// number of elements along the second dimension of points array
-						 polygon_points,	// the points
-						 AST_NULL,			// uncertainty
-						 "");				// options
+	ast_polygon = astPolygon(local_frame,		// frame region is defined
+							 n_vert,			// number of points in polygon
+							 n_vert,			// number of elements along the second dimension of points array
+							 points,			// the points
+							 AST__NULL,			// uncertainty
+							 "");				// options
 #pragma GCC diagnostic pop
 	
-	astExport(polygon);
+	pfree(points);
+
+	astExport(ast_polygon);
 	astEnd;
 	
-	return polygon;
+	return ast_polygon;
 }
 
 /*

@@ -4,7 +4,7 @@
 #include <string.h>
 
 #include "pgast.h"
-#include "pgast_custom.h"
+//#include "pgast_custom.h"
 #include "pgast_getregiondisc.h"
 #include "pgast_util.h"
 

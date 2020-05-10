@@ -4,7 +4,9 @@
 
 Author: Demitri Muna
 
-pgAST is a PostgreSQL plug-in that implements some functionality from the [Starlink AST](https://github.com/Starlink/ast), a library for handling world coordinate systems (WCS) in astronomy. Only a few functions are currently defined; more will be added over time.
+pgAST is a PostgreSQL plug-in that implements some functionality from the [Starlink AST](https://github.com/Starlink/ast), a library for handling world coordinate systems (WCS) in astronomy. This plug-in provides an interface between WCS and region-related functionality and data available in databases containing astronomical data. Rather than pull data down to a client to perform astronomy-related calculations, these can be performed at the server to reduce the need of transferring data and provide more application-specific filters in queries.
+
+Only a few functions are currently defined; more will be added over time. This project provides a straightforward means of extending the functionality of the powerful and well-tested library into a database.
 
 ## Building and Installing the Extension
 
@@ -24,23 +26,22 @@ DROP EXTENSION pgast;
 CREATE EXTENSION pgast;
 ```
 
-## Documentation
+## Documentation & API
 
 ### Data Types
 Note that many of these functions accept and return native PostgreSQL geometric types (i.e. *not* PostGIS), such as [Circles](https://www.postgresql.org/docs/current/datatype-geometric.html#DATATYPE-CIRCLE), [Polygons](https://www.postgresql.org/docs/current/datatype-geometric.html#DATATYPE-POLYGON), and [Points](https://www.postgresql.org/docs/current/datatype-geometric.html#id-1.5.7.16.5). A reference of geometric functions supported by the database for use with these objects can be found [here](https://www.postgresql.org/docs/12/functions-geometry.html).
 
-All geometries are on the celestial sphere and in the ICRS coordinate frame unless otherwise noted.
+All geometries are on the celestial sphere and in the ICRS coordinate frame unless otherwise noted. Points of a polygon are connected by great circle segments.
 
 ### API
 
 The functions defined by this extension are:
 
-```
-pgast_bounding_circle(text fits_header)
+```sql
+pgast_bounding_circle(polygon poly)
+pgast_bounding_circle(text fits_header_as_string)
 pgast_bounding_polygon(text fits_header_as_string)
 pgast_point_in_polygon(polygon polygon, float8 ra, float8 dec)
-pgast_bounding_circle(text fits_header_as_string)
-pgast_bounding_circle(polygon polygon)
 ```
 
 
@@ -51,8 +52,8 @@ pgast_bounding_circle(polygon polygon)
 This function has two signatures; it accepts a `text` value of a FITS header or a PostgreSQL Polygon object.
 
 ```sql
-pgast_bounding_circle(fits_header_as_string)
 pgast_bounding_circle(polygon)
+pgast_bounding_circle(fits_header_as_string)
 ```
 
 The return value is a native PostgreSQL Circle record.
@@ -61,7 +62,7 @@ The FITS header must be provided as a single string, i.e. each 80 character reco
 
 Values of the circle can be read as:
 
-```
+```sql
 -- radius in degrees
 SELECT RADIUS(pgast_bounding_circle(fits_header_as_string)) FROM ...
 ```
@@ -88,7 +89,7 @@ pgast_bounding_polygon(text fits_header_as_string)
 Returns `true` or `false`.
 
 ```sql
-pgast_point_in_polygon(polygon polygon, float8 ra, float8 dec)
+pgast_point_in_polygon(polygon poly, float8 ra, float8 dec)
 ```
 
 ## Developer Notes

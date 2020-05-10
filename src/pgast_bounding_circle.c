@@ -57,6 +57,7 @@ This function takes a polygon and returns the minimum circle that bounds the are
 pgast_bounding_circle(polygon polygon)
 
 @param fits_header a FITS header as a single string.
+ 
 */PG_FUNCTION_INFO_V1(pgast_bounding_circle_polygon);
 Datum
 pgast_bounding_circle_polygon(PG_FUNCTION_ARGS) // (polygon polygon)
@@ -78,7 +79,7 @@ pgast_bounding_circle_polygon(PG_FUNCTION_ARGS) // (polygon polygon)
 	int n_vert = polygon->npts; // number of vertices/coordinate pairs
 	
 	double *points = (double*)palloc(n_vert * 2 * sizeof(double));
-	pgpolygon2astPoints(polygon, points);
+	pgPolygon2astPoints(polygon, points);
 	
 	astBegin;
 
@@ -89,7 +90,7 @@ pgast_bounding_circle_polygon(PG_FUNCTION_ARGS) // (polygon polygon)
 										n_vert,			// number of points in region
 										n_vert,			// dimension along second axis [2][n]
 										points,			// points array
-										NULL,			// uncertainty
+										AST__NULL,		// uncertainty
 										"");			// options
 #pragma GCC diagnostic pop
 

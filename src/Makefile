@@ -24,7 +24,10 @@ MODULE_big = pgast
 # Include AST library
 # -------------------
 # flags to add to CPPFLAGS
-AST      = /usr/custom/ast
+ifndef AST
+$(error Please set the environment variable 'AST' to an installation of the Starlink AST library.)
+endif
+#AST      = /usr/custom/ast
 AST_LIB  = $(AST)/lib
 
 # Adding '-Wno-format-zero-length' since AST can take empty strings as parameters
@@ -53,7 +56,7 @@ SHLIB_LINK = $(AST_LIB)/libast.a $(AST_LIB)/libast_grf3d.a $(AST_LIB)/libast_err
 # This line is added to the cc linker.
 # PG_LIBS = somelib.a anotherlib.a
 
-OBJS = pgast_pgast.o pgast_header2polygon.o pgast_custom.o pgast_getregiondisc.o pgast_bounding_circle.o pgast_util.o pgast_bounding_polygon.o
+OBJS = pgast_pgast.o pgast_header2polygon.o pgast_bounding_circle.o pgast_getregiondisc.o pgast_util.o pgast_bounding_polygon.o pgast_region_overlaps.o
 
 # -----------------------------------------------------
 
