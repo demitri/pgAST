@@ -62,12 +62,17 @@ AstPolygon* fitsheader2polygon(const char *header, int *npoints) //, double *pol
 	wcs_frames = astRead(fitsChan);
 	
 	// TODO: handle error id wcs_frames == NULL, i.e. no valid WCS could be read
-	if (wcs_frames)
-		; //fprintf(stderr, "read WCS ok %s", astToString(wcs_frames)); // for debugging
-	else {
+	if (wcs_frames == AS__NULL) {
+		ereport(ERROR, (errmsg("pgAST: No valid WCS could be read from header.")));
 		astEnd;
 		return AST__NULL;
 	}
+//	if (wcs_frames)
+//		; //fprintf(stderr, "read WCS ok %s", astToString(wcs_frames)); // for debugging
+//	else {
+//		astEnd;
+//		return AST__NULL;
+//	}
 		
 	//ereport(DEBUG1,(errmsg("pgast: Header:")));
 	//ereport(DEBUG1,(errmsg("%s", header)));

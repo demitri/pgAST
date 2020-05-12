@@ -34,7 +34,7 @@ pgast_bounding_polygon(PG_FUNCTION_ARGS) // (text fits_header_as_string)
 	AstPolygon *sky_polygon = fitsheader2polygon(fits_header, &npoints);
 	if (sky_polygon == AST__NULL) {
 		// for example, incomplete FITS header or header does not contain WCS, image, etc.
-		ereport(DEBUG1, (errmsg("polygon could not be created from header")));
+		ereport(DEBUG1, (errmsg("AST polygon could not be created from header")));
 		astEnd;
 		PG_RETURN_NULL();
 	}
