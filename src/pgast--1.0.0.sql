@@ -29,3 +29,7 @@ LANGUAGE C IMMUTABLE STRICT;
 CREATE OR REPLACE FUNCTION pgast_bounding_polygon(text) RETURNS POLYGON
 AS 'MODULE_PATHNAME', 'pgast_bounding_polygon'
 LANGUAGE C IMMUTABLE STRICT;
+
+CREATE OR REPLACE FUNCTION pgast_icrs_polygon_overlaps_hdu(polygon a_polygon, text image_header_as_string) RETURNS bool
+AS 'MODULE_PATHNAME', 'pgast_icrs_polygon_overlaps_hdu'
+LANGUAGE C IMMUTABLE STRICT;

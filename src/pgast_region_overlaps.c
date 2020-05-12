@@ -59,7 +59,7 @@ pgast_bounding_circle_header(PG_FUNCTION_ARGS) // (polygon a_polygon)
  */
 PG_FUNCTION_INFO_V1(pgast_icrs_polygon_overlaps_hdu);
 Datum
-pgast_icrs_polygon_overlaps_hdu(PG_FUNCTION_ARGS) // (polygon a_polygon)
+pgast_icrs_polygon_overlaps_hdu(PG_FUNCTION_ARGS) // (polygon a_polygon, text fits_header)
 {
 	// get function args
 	// -----------------
