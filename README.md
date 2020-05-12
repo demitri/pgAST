@@ -41,7 +41,8 @@ The functions defined by this extension are:
 pgast_bounding_circle(polygon poly)
 pgast_bounding_circle(text fits_header_as_string)
 pgast_bounding_polygon(text fits_header_as_string)
-pgast_point_in_polygon(polygon polygon, float8 ra, float8 dec)
+pgast_point_in_polygon(polygon poly, float8 ra, float8 dec)
+pgast_icrs_polygon_overlaps_hdu(polygon icrs_polygon, text fits_header_as_string)
 ```
 
 
@@ -90,6 +91,18 @@ Returns `true` or `false`.
 
 ```sql
 pgast_point_in_polygon(polygon poly, float8 ra, float8 dec)
+```
+
+### `pgast_icrs_polygon_overlaps_hdu`
+
+##### Test whether two polygons on the sky overlap.
+
+This function takes a PostgreSQL polygon, assumed to be in the ICRS coordinate system in degrees, and compares it to a polygon derived from the FITS header of a 2D image HDU. The FITS header provided is not required to also be in the ICRS coordinate system — the underlying AST code will perform any necessary transformation.
+
+`NULL` is returned if the FITS header is not of a 2D image with axis lengths at least 2, or if a WCS cannot be read from the header.
+
+```sql
+pgast_icrs_polygon_overlaps_hdu(polygon icrs_polygon, text fits_header_as_string)
 ```
 
 ## Developer Notes
@@ -141,7 +154,13 @@ The settings in `postgresql.conf` determines which level of log messages are sen
 For example, to view `DEBUG1` messages and higher (less verbose) in the client (e.g. `psql`), place this line in `postgresql.conf` and restart the server:
 
 ```
-client_min_messages = debug1
+set client_min_messages = debug1
+```
+
+or to see messages in just the client session:
+
+```sql
+SET client_min_messages TO 'DEBUG1';
 ```
 
 ## Useful Links
