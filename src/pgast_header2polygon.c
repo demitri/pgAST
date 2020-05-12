@@ -61,18 +61,11 @@ AstPolygon* fitsheader2polygon(const char *header, int *npoints) //, double *pol
 	// Read the WCS info from the header
 	wcs_frames = astRead(fitsChan);
 	
-	// TODO: handle error id wcs_frames == NULL, i.e. no valid WCS could be read
 	if (wcs_frames == AST__NULL) {
 		ereport(ERROR, (errmsg("pgAST: No valid WCS could be read from header.")));
 		astEnd;
 		return AST__NULL;
 	}
-//	if (wcs_frames)
-//		; //fprintf(stderr, "read WCS ok %s", astToString(wcs_frames)); // for debugging
-//	else {
-//		astEnd;
-//		return AST__NULL;
-//	}
 		
 	//ereport(DEBUG1,(errmsg("pgast: Header:")));
 	//ereport(DEBUG1,(errmsg("%s", header)));
@@ -112,7 +105,7 @@ AstPolygon* fitsheader2polygon(const char *header, int *npoints) //, double *pol
 			return AST__NULL;
 		}
 		else if (dim1 < 2) {
-			ereport(DEBUG1, (errmsg("Error (fitsheader2polygon): Each axis must have dimension >=2 (NAXIS1=%d).", dim1)));
+			ereport(DEBUG1, (errmsg("Error (fitsheader2polygon): Each axis must have dimension >= 2 (NAXIS1=%d).", dim1)));
 			astEnd;
 			return AST__NULL;
 		}
@@ -120,13 +113,13 @@ AstPolygon* fitsheader2polygon(const char *header, int *npoints) //, double *pol
 		// read NAXIS2 value
 		// -----------------
 		success = astGetFitsI(fitsChan, "NAXIS2", &dim2);
-		if (success == 0 || dim2 < 2) {
-			ereport(DEBUG1, (errmsg("Error: astGetFits did not find 'NAXIS2' keyword.")));
+		if (success == 0) {
+			ereport(DEBUG1, (errmsg("Error (fitsheader2polygon): astGetFits did not find 'NAXIS2' keyword.")));
 			astEnd;
 			return AST__NULL;
 		}
 		else if (dim2 < 2) {
-			ereport(DEBUG1, (errmsg("Error (fitsheader2polygon): Each axis must have dimension >=2 (NAXIS2=%d).", dim2)));
+			ereport(DEBUG1, (errmsg("Error (fitsheader2polygon): Each axis must have dimension >= 2 (NAXIS2=%d).", dim2)));
 			astEnd;
 			return AST__NULL;
 		}
@@ -278,9 +271,8 @@ AstPolygon* fitsheader2polygon(const char *header, int *npoints) //, double *pol
 		
 	// values to return
 	*npoints = num_points;
-	//polygon = new_sky_polygon;
-	
 	astExport(new_sky_polygon);
+
 	astEnd;
 
 	return new_sky_polygon;
