@@ -6,7 +6,7 @@ Author: Demitri Muna
 
 pgAST is a PostgreSQL plug-in that implements some functionality from the [Starlink AST](https://github.com/Starlink/ast), a library for handling world coordinate systems (WCS) in astronomy. This plug-in provides an interface between WCS and region-related functionality and data available in databases containing astronomical data. Rather than pull data down to a client to perform astronomy-related calculations, these can be performed at the server to reduce the need of transferring data and provide more application-specific filters in queries.
 
-Only a few functions are currently defined; more will be added over time. This project provides a straightforward means of extending the functionality of the powerful and well-tested library into a database.
+Only a few functions are currently defined; more will be added over time. This project provides a straightforward means of extending the functionality of the powerful and well-tested AST library into a database.
 
 ## Building and Installing the Extension
 
@@ -41,7 +41,8 @@ The functions defined by this extension are:
 pgast_bounding_circle(polygon poly)
 pgast_bounding_circle(text fits_header_as_string)
 pgast_bounding_polygon(text fits_header_as_string)
-pgast_point_in_polygon(polygon poly, float8 ra, float8 dec)
+pgast_point_in_polygon(float8 ra, float8 dec, polygon poly)
+pgast_point_in_polygon(float8 ra, float8 dec, text fits_header_string)
 pgast_icrs_polygon_overlaps_hdu(polygon icrs_polygon, text fits_header_as_string)
 ```
 
@@ -87,11 +88,18 @@ pgast_bounding_polygon(text fits_header_as_string)
 
 ##### Test whether an (ra,dec) point is within a given polygon.
 
-Returns `true` or `false`.
+Returns `true` or `false`. The function comes in two forms. The first takes the ra,dec point along with a PostgreSQL polygon:
 
 ```sql
-pgast_point_in_polygon(polygon poly, float8 ra, float8 dec)
+pgast_point_in_polygon(float8 ra, float8 dec, polygon poly)
 ```
+
+The second takes the full FITS header as a single string and extracts a polygon (if it can) from that:
+
+```sql
+pgast_point_in_polygon(float8 ra, float8 dec, text fits_header_string)
+```
+
 
 ### `pgast_icrs_polygon_overlaps_hdu`
 
