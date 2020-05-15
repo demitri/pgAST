@@ -5,13 +5,15 @@ CREATE  OR REPLACE FUNCTION wcs_test() RETURNS integer
 AS '$libdir/pgast'
 LANGUAGE C IMMUTABLE STRICT;
 
-CREATE OR REPLACE FUNCTION pgast_point_in_polygon(text, double precision, double precision) RETURNS boolean
+CREATE OR REPLACE FUNCTION pgast_point_in_polygon(double precision, double precision, text) RETURNS boolean
 -- (text fits_header_as_string, float ra_degrees, float dec_degrees)
 AS 'MODULE_PATHNAME', 'pgast_point_in_polygon_header'
+COST 150
 LANGUAGE C IMMUTABLE STRICT;
 
-CREATE OR REPLACE FUNCTION pgast_point_in_polygon(polygon, double precision, double precision) RETURNS boolean
+CREATE OR REPLACE FUNCTION pgast_point_in_polygon(double precision, double precision, polygon) RETURNS boolean
 -- (polygon region_polygon, double precision ra_degrees, double precision dec_degrees)
+COST 150
 AS 'MODULE_PATHNAME', 'pgast_point_in_polygon_poly'
 LANGUAGE C IMMUTABLE STRICT;
 

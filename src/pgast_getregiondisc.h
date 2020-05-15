@@ -7,6 +7,8 @@
 //#include "fmgr.h"
 //#include "pgast.h"
 
-AstPolygon* fitsheader2polygon(const char *header);
+//AstPolygon* fitsheader2polygon(const char *header);
+
+Datum pgast_getregiondisc(PG_FUNCTION_ARGS);
 
 #endif /* __PGAST_GETREGIONDISC_H__ */

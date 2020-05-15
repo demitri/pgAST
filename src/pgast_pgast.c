@@ -4,9 +4,8 @@
 #include <string.h>
 
 #include "pgast.h"
-//#include "pgast_custom.h"
-#include "pgast_getregiondisc.h"
 #include "pgast_util.h"
+#include "pgast_header2polygon.h"
 
 #ifdef PG_MODULE_MAGIC
 PG_MODULE_MAGIC;
@@ -34,16 +33,16 @@ pgast_point_in_polygon_poly(PG_FUNCTION_ARGS) // (polygon polygon, float8 ra, fl
 {
 	// get function args
 	// -----------------
+	double ra  = PG_GETARG_FLOAT8(0); // ra, degrees
+	double dec = PG_GETARG_FLOAT8(1); // dec, degrees
+
 	POLYGON *polygon;
-	if (PG_ARGISNULL(0)) {
+	if (PG_ARGISNULL(2)) {
 		PG_RETURN_NULL();
 		//ereport(ERROR, (errmsg("pgAST: The polygon parameter must not be NULL.")));
 	} else
-		polygon = PG_GETARG_POLYGON_P(0);
+		polygon = PG_GETARG_POLYGON_P(2);
 	
-	double ra  = PG_GETARG_FLOAT8(1); // ra, degrees
-	double dec = PG_GETARG_FLOAT8(2); // dec, degrees
-
 	// internal variables
 	// ------------------
 	int point_in_region;
@@ -101,11 +100,12 @@ Datum
 pgast_point_in_polygon_header(PG_FUNCTION_ARGS) // (text fits_header, float ra, float dec)
 {
 	// get function args
-	char* fits_header = text_to_cstring(PG_GETARG_TEXT_PP(0)); // return a null-terminated C string
-	double ra  = PG_GETARG_FLOAT8(1); // ra, degrees
-	double dec = PG_GETARG_FLOAT8(2); // dec, degrees
+	double ra  = PG_GETARG_FLOAT8(0); // ra, degrees
+	double dec = PG_GETARG_FLOAT8(1); // dec, degrees
+	char* fits_header = text_to_cstring(PG_GETARG_TEXT_PP(2)); // return a null-terminated C string
 
 	// internal variables
+	int npoints;
 	int point_in_region;
 	double ra_out, dec_out;
 	
@@ -114,7 +114,7 @@ pgast_point_in_polygon_header(PG_FUNCTION_ARGS) // (text fits_header, float ra, 
 	
 	astBegin;
 	
-	AstPolygon *sky_polygon = fitsheader2polygon(fits_header);
+	AstPolygon *sky_polygon = fitsheader2polygon(fits_header, &npoints);
 	if (sky_polygon == AST__NULL) {
 		// for example, incomplete FITS header or header does not contain WCS, image, etc.
 		astEnd;

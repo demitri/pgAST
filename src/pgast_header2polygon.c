@@ -50,6 +50,8 @@ AstPolygon* fitsheader2polygon(const char *header, int *npoints) //, double *pol
 	
 	astBegin;
 	
+	ereport(DEBUG1, (errmsg("fitsheader2polygon: start")));
+	
 	// Create an empty FITS channel (AST object that holds a FITS header)
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wformat-security"
@@ -57,12 +59,22 @@ AstPolygon* fitsheader2polygon(const char *header, int *npoints) //, double *pol
 	fitsChan = astFitsChan( NULL, NULL, "");
 #pragma GCC diagnostic pop
 	astPutCards( fitsChan, header ); // add all cards at once
+
+//	ereport(DEBUG1, (errmsg("fitsheader2polygon: after astPutCards")));
 	
+	if (!astOK) {
+		printf("pgAST error (fitsheader2polygon): An error occurred when reading the FITS header (status=%d).\n", astStatus);
+		astEnd;
+		return AST__NULL;
+	}
+
 	// Read the WCS info from the header
 	wcs_frames = astRead(fitsChan);
-	
+
+//	ereport(DEBUG1, (errmsg("fitsheader2polygon: after wcs_frames")));
+
 	if (wcs_frames == AST__NULL) {
-		ereport(ERROR, (errmsg("pgAST: No valid WCS could be read from header.")));
+		ereport(ERROR, (errmsg("pgAST error (fitsheader2polygon): No valid WCS could be read from header.")));
 		astEnd;
 		return AST__NULL;
 	}
@@ -75,10 +87,13 @@ AstPolygon* fitsheader2polygon(const char *header, int *npoints) //, double *pol
 	pixel_frame = astGetFrame(wcs_frames, AST__BASE);
 	sky_frame = astGetFrame(wcs_frames, AST__CURRENT);
 	if (astIsASkyFrame(sky_frame) == 0) { // returns 1 if yes, 0 if no
+		ereport(ERROR, (errmsg("pgAST error (fitsheader2polygon): The provided WCS does not contain a sky frame.")));
 		astEnd;
 		return AST__NULL;
 	}
-	
+
+//	ereport(DEBUG1, (errmsg("fitsheader2polygon: after getFrames")));
+
 	// get the image dimensions, read from header
 	{
 		// read NAXIS value
@@ -87,12 +102,12 @@ AstPolygon* fitsheader2polygon(const char *header, int *npoints) //, double *pol
 		int success;
 		success = astGetFitsI(fitsChan, "NAXIS", &naxes); // returns 0 if not found, 1 otherwise
 		if (success == 0) {
-			ereport(DEBUG1, (errmsg("Error (fitsheader2polygon): astGetFits did not find 'NAXIS' keyword.")));
+			ereport(DEBUG1, (errmsg("pgAST error (fitsheader2polygon): astGetFits did not find 'NAXIS' keyword.")));
 			astEnd;
 			return AST__NULL;
 		}
 		else if (naxes != 2) {
-			ereport(DEBUG1, (errmsg("Error (fitsheader2polygon): header is not a 2D image (NAXIS=%d).", naxes)));
+			ereport(DEBUG1, (errmsg("pgAST error (fitsheader2polygon): header is not a 2D image (NAXIS=%d).", naxes)));
 			astEnd;
 			return AST__NULL;
 		}
@@ -100,12 +115,12 @@ AstPolygon* fitsheader2polygon(const char *header, int *npoints) //, double *pol
 		// -----------------
 		success = astGetFitsI(fitsChan, "NAXIS1", &dim1);
 		if (success == 0) {
-			ereport(DEBUG1, (errmsg("Error (fitsheader2polygon): astGetFits did not find 'NAXIS1' keyword.")));
+			ereport(DEBUG1, (errmsg("pgAST error (fitsheader2polygon): astGetFits did not find 'NAXIS1' keyword.")));
 			astEnd;
 			return AST__NULL;
 		}
 		else if (dim1 < 2) {
-			ereport(DEBUG1, (errmsg("Error (fitsheader2polygon): Each axis must have dimension >= 2 (NAXIS1=%d).", dim1)));
+			ereport(DEBUG1, (errmsg("pgAST error (fitsheader2polygon): Each axis must have dimension >= 2 (NAXIS1=%d).", dim1)));
 			astEnd;
 			return AST__NULL;
 		}
@@ -114,12 +129,12 @@ AstPolygon* fitsheader2polygon(const char *header, int *npoints) //, double *pol
 		// -----------------
 		success = astGetFitsI(fitsChan, "NAXIS2", &dim2);
 		if (success == 0) {
-			ereport(DEBUG1, (errmsg("Error (fitsheader2polygon): astGetFits did not find 'NAXIS2' keyword.")));
+			ereport(DEBUG1, (errmsg("pgAST error (fitsheader2polygon): astGetFits did not find 'NAXIS2' keyword.")));
 			astEnd;
 			return AST__NULL;
 		}
 		else if (dim2 < 2) {
-			ereport(DEBUG1, (errmsg("Error (fitsheader2polygon): Each axis must have dimension >= 2 (NAXIS2=%d).", dim2)));
+			ereport(DEBUG1, (errmsg("pgAST error (fitsheader2polygon): Each axis must have dimension >= 2 (NAXIS2=%d).", dim2)));
 			astEnd;
 			return AST__NULL;
 		}
@@ -140,7 +155,16 @@ AstPolygon* fitsheader2polygon(const char *header, int *npoints) //, double *pol
 						  AST__NULL,
 						  ""); // no options needed
 #pragma GCC diagnostic pop
+
+		if (pixelbox == AST__NULL) {
+			ereport(WARNING, (errmsg("pgAST error (fitsheader2polygon): astBox returned NULL. (status=%d", astStatus)));
+			astEnd;
+			return AST__NULL;
+		}
 	}
+
+//	ereport(DEBUG1, (errmsg("fitsheader2polygon: after astbox")));
+
 	// Map the box in the pixel frame onto the sky frame.
 	// The function knows to go from pixels-> sky
 	// since that is the frame 'pixelbox' is in.
@@ -149,7 +173,14 @@ AstPolygon* fitsheader2polygon(const char *header, int *npoints) //, double *pol
 						  wcs_frames,   // map
 						  wcs_frames);  // frame
 
+//	ereport(DEBUG1, (errmsg("fitsheader2polygon: after astMapRegion (skybox=%p)", skybox)));
+
 	// if skybox == AST__NULL : handle error...
+	if (skybox == AST__NULL) {
+		ereport(WARNING, (errmsg("pgAST error (fitsheader2polygon): astMapRegion returned NULL. (status=%d", astStatus)));
+		astEnd;
+		return AST__NULL;
+	}
 
 	// Create a mesh: this is an array of points evenly
 	// distributed along the boundary of the region.
@@ -177,6 +208,13 @@ AstPolygon* fitsheader2polygon(const char *header, int *npoints) //, double *pol
 					 &num_points,  // returns the number of points needed (no. of (x,y) pairs)
 					 NULL);		// ignored
 	
+	// if skybox == AST__NULL : handle error...
+	if (!astOK) {
+		ereport(WARNING, (errmsg("pgAST error (fitsheader2polygon): astGetRegionMesh (1) failed. (status=%d)", astStatus)));
+		astEnd;
+		return AST__NULL;
+	}
+
 	// allocate array for points -> [maxcoord][num_points]
 	//ereport(DEBUG1, (errmsg("pgast: about to allocate [%d][%d][%d]", maxcoord, num_points, sizeof(double))));
 	mesh_points = (double*)palloc(maxcoord*num_points * sizeof(double));
@@ -190,11 +228,20 @@ AstPolygon* fitsheader2polygon(const char *header, int *npoints) //, double *pol
 					 maxcoord,	// number of axes of region (2D image = 2)
 					 &num_points,	// returns the number of points needed (no. of (x,y) pairs)
 					 mesh_points); // the array of points
-	
+
+	if (!astOK) {
+		ereport(WARNING, (errmsg("pgAST error (fitsheader2polygon): astGetRegionMesh (2) failed. (status=%d", astStatus)));
+		pfree(mesh_points);
+		astEnd;
+		return AST__NULL;
+	}
+
 	// The returned array is in the form:
 	// [x1, x2, ..., xn, y1, y2, ..., yn] in RADIANS.
 	// (or more specifically, [ra1, ..., ran, dec1, ..., decn]
 	
+//	ereport(DEBUG1, (errmsg("fitsheader2polygon: after astGetRegionMesh (2) (skybox=%p)", skybox)));
+
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wformat-security"
 #pragma GCC diagnostic ignored "-Wformat-zero-length"
@@ -210,8 +257,12 @@ AstPolygon* fitsheader2polygon(const char *header, int *npoints) //, double *pol
 							  "");			// options
 #pragma GCC diagnostic pop
 
+//	ereport(DEBUG1, (errmsg("fitsheader2polygon: after create astPolygon (flat_polygon=%p)", flat_polygon)));
+
 	pfree(mesh_points);
-	
+
+//	ereport(DEBUG1, (errmsg("fitsheader2polygon: after pfree(mesh_points)")));
+
 	// Create a new polygon with downsized points.
 	// This removes points where the polygon is close
 	// to a Cartesean straight line up to the error specified.
@@ -220,6 +271,8 @@ AstPolygon* fitsheader2polygon(const char *header, int *npoints) //, double *pol
 		double max_downsize_err = 4.848e-6; // 1 arcsec in radians
 		reduced_flat_polygon = astDownsize(flat_polygon, max_downsize_err, 0);
 		
+//		ereport(DEBUG1, (errmsg("fitsheader2polygon: after astDownsize (reduced_flat_polygon=%p)", reduced_flat_polygon)));
+
 		// This is not the final polygon; we want it in the sky frame.
 	}
 
@@ -234,6 +287,8 @@ AstPolygon* fitsheader2polygon(const char *header, int *npoints) //, double *pol
 					   &num_points,				// number of points needed
 					   NULL);					// NULL = just return number of points needed
 					   
+//	ereport(DEBUG1, (errmsg("fitsheader2polygon: after astGetRegionPoints (3)")));
+
 	// allocate points array
 	points = (double*)palloc(maxcoord*num_points * sizeof(double));
 
@@ -245,6 +300,8 @@ AstPolygon* fitsheader2polygon(const char *header, int *npoints) //, double *pol
 					   maxcoord,
 					   &num_points,
 					   points);		// returned array
+
+//	ereport(DEBUG1, (errmsg("fitsheader2polygon: after astGetRegionPoints (4)")));
 
 	// print all points (for debugging)
 	//for (int i=0; i < num_points; i++) {
@@ -264,16 +321,27 @@ AstPolygon* fitsheader2polygon(const char *header, int *npoints) //, double *pol
 								 "");
 #pragma GCC diagnostic pop
 
+//	ereport(DEBUG1, (errmsg("fitsheader2polygon: after new_sky_polygon created (new_sky_polygon=%p)", new_sky_polygon)));
+
 	pfree(points);
-	
+
+//	ereport(DEBUG1, (errmsg("fitsheader2polygon: after pfree(points)")));
+
 	if (!astGetI(new_sky_polygon, "Bounded"))
 		astNegate(new_sky_polygon);
 		
+//	ereport(DEBUG1, (errmsg("fitsheader2polygon: after bounded check (num_points=%d)", num_points)));
+
 	// values to return
 	*npoints = num_points;
+
+//	ereport(DEBUG1, (errmsg("fitsheader2polygon: before astExport")));
+
 	astExport(new_sky_polygon);
 
 	astEnd;
+
+//	ereport(DEBUG1, (errmsg("fitsheader2polygon: before return")));
 
 	return new_sky_polygon;
 }

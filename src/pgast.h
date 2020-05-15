@@ -18,8 +18,4 @@
 
 #include "ast.h"
 
-// Functions
-//PG_FUNCTION_INFO_V1(pgast_getregiondisc);
-//void pgpolygon2points(ArrayType* array, double *points);
-
 #endif /* __PGAST2_H__ */

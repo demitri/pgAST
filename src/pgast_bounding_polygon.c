@@ -39,7 +39,7 @@ pgast_bounding_polygon(PG_FUNCTION_ARGS) // (text fits_header_as_string)
 		PG_RETURN_NULL();
 	}
 
-	ereport(DEBUG1, (errmsg("returned polygon has %d coordinates", npoints)));
+	//ereport(DEBUG1, (errmsg("returned polygon has %d coordinates", npoints)));
 
 	// --------------------------------------------------------------------------
 	// Get points from polygon.
@@ -67,7 +67,7 @@ pgast_bounding_polygon(PG_FUNCTION_ARGS) // (text fits_header_as_string)
 	// returned array is [x1, x2, x3, ..., xn, y1, y2, y3, ... yn] in RADIANS
 	// --------------------------------------------------------------------------
 	
-	ereport(DEBUG1, (errmsg("points[0] = %.5f, %.5f", points[0], points[1])));
+	//ereport(DEBUG1, (errmsg("points[0] = %.5f, %.5f", points[0], points[1])));
 
 	// Allocate space for PostgreSQL polygon.
 	//
