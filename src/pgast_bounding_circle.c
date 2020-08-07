@@ -36,11 +36,40 @@ pgast_bounding_circle_header(PG_FUNCTION_ARGS) // (text fits_header)
 	AstPolygon *sky_polygon = fitsheader2polygon(fits_header, &npoints);
 	if (sky_polygon == AST__NULL) {
 		// for example, incomplete FITS header or header does not contain WCS, image, etc.
+		ereport(DEBUG1, (errmsg("pgast_bounding_circle_header: bad sky_polygon")));
 		astEnd;
 		PG_RETURN_NULL();
 	}
 
+	astShow(sky_polygon); //print description to stdout (see: database log)
+	//ereport(DEBUG1, (errmsg("pgast_bounding_circle_header -> header\n%s",fits_header )));
+
+	//ereport(DEBUG1, (errmsg("pgast_bounding_circle_header: astOK ? %d", astOK)));
+	//ereport(DEBUG1, (errmsg("pgast_bounding_circle_header: sky_polygon bounded? %d", astGetI(sky_polygon, "Bounded"))));
+	
+	// returns the centre and radius of a disc that just encloses the supplied 2-dimensional Region
 	astGetRegionDisc(sky_polygon, centre, &(circle->radius));
+	
+	if (circle->radius == AST__BAD) {
+		// error: the region is unbounded
+		ereport(DEBUG1, (errmsg("pgast_bounding_circle_header: supplied region is unbounded")));
+		astEnd;
+		PG_RETURN_NULL();
+	}
+	
+	//ereport(DEBUG1, (errmsg("pgast_bounding_circle_header: radius=%f", circle->radius)));
+	//ereport(DEBUG1, (errmsg("pgast_bounding_circle_header: AST__BAD=%f", AST__BAD)));
+	//ereport(DEBUG1, (errmsg("pgast_bounding_circle_header: centre=(%f, %f)", centre[0], centre[1])));
+
+	if (!astOK) {
+		ereport(DEBUG1, (errmsg("pgast_bounding_circle_header: bad astGetRegionDisc %f", circle->radius)));
+		astEnd;
+		PG_RETURN_NULL();
+	}
+	
+	astShow(sky_polygon);
+	
+	//ereport(DEBUG1, (errmsg("%f", circle->radius)));
 	
 	circle->center.x = rad2deg(centre[0]);
 	circle->center.y = rad2deg(centre[1]);

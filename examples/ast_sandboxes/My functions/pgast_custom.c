@@ -16,7 +16,7 @@ AstPolygon* pgast_polygon_from_fitschan(AstFitsChan *fitsChan) //, AstPolygon **
 	int success;
 	//new_polygon = AST__NULL;
 
-	// copy the provided fitsChan to avoid modifing the provided one
+	// copy the provided fitsChan to avoid modifying the provided one
 	AstFitsChan *fitsChanCopy = astCopy(fitsChan);
 	
 	// read the WCS from the header
@@ -28,7 +28,7 @@ AstPolygon* pgast_polygon_from_fitschan(AstFitsChan *fitsChan) //, AstPolygon **
 	success = astGetFitsI(fitsChanCopy, "NAXIS", &naxes);
 	if (success == 0 || naxes != 2) {
 		astEnd;
-		return 0;
+		return AST__NULL;
 	}
 	  
 	// get the image dimensions
@@ -36,24 +36,29 @@ AstPolygon* pgast_polygon_from_fitschan(AstFitsChan *fitsChan) //, AstPolygon **
 	success = astGetFitsI(fitsChanCopy, "NAXIS1", &dim1);
 	if (success == 0) {
 		astEnd;
-		return 0;
+		return AST__NULL;
 	}
 	success = astGetFitsI(fitsChanCopy, "NAXIS2", &dim2);
 	if (success == 0) {
 		astEnd;
-		return 0;
+		return AST__NULL;
 	}
 
 	const double point1[] = {0.5, 0.5};
 	const double point2[] = {dim1+0.5, dim2+0.5};
 	const char *options = "";
 
-	AstBox *pixelbox = astBox(astGetFrame(wcsinfo, AST__BASE), 1, point1, point2, AST__NULL, options);
+	AstBox *pixelbox = astBox(astGetFrame(wcsinfo, AST__BASE),
+							  1,
+							  point1,
+							  point2,
+							  AST__NULL,
+							  options);
 	
 	AstFrame *skyFrame = astGetFrame(wcsinfo, AST__CURRENT);
 	if (astIsASkyFrame(skyFrame) == 0) {
 		astEnd;
-		return 0;
+		return AST__NULL;
 	}
 	
 	// using the wcs mapping, convert the box from the pixel frame to a sky frame

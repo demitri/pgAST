@@ -50,7 +50,7 @@ AstPolygon* fitsheader2polygon(const char *header, int *npoints) //, double *pol
 	
 	astBegin;
 	
-	ereport(DEBUG1, (errmsg("fitsheader2polygon: start")));
+	//ereport(DEBUG1, (errmsg("fitsheader2polygon: start")));
 	
 	// Create an empty FITS channel (AST object that holds a FITS header)
 #pragma GCC diagnostic push
@@ -171,7 +171,7 @@ AstPolygon* fitsheader2polygon(const char *header, int *npoints) //, double *pol
 	// (Note that a frame set can also act as a mapping.)
 	skybox = astMapRegion(pixelbox,
 						  wcs_frames,   // map
-						  wcs_frames);  // frame
+						  sky_frame); //wcs_frames);  // frame
 
 //	ereport(DEBUG1, (errmsg("fitsheader2polygon: after astMapRegion (skybox=%p)", skybox)));
 
@@ -195,7 +195,7 @@ AstPolygon* fitsheader2polygon(const char *header, int *npoints) //, double *pol
 	//    - call again with allocated array
 	//
 	surface = 1;  // non-zero = fit points on  surface (2D -> boundary) of region
-	//num_points; // defined as parameter
+	//num_points; // return value
 	maxcoord = 2; // number of axis values per point (e.g. 2D image = 2)
 	maxpoint = 0; // 0 = number of points fits returned in "npoint"
 	
@@ -269,17 +269,27 @@ AstPolygon* fitsheader2polygon(const char *header, int *npoints) //, double *pol
 	//
 	{
 		double max_downsize_err = 4.848e-6; // 1 arcsec in radians
-		reduced_flat_polygon = astDownsize(flat_polygon, max_downsize_err, 0);
+		reduced_flat_polygon = astDownsize(flat_polygon, max_downsize_err, 0); // -> AstPolygon
 		
 //		ereport(DEBUG1, (errmsg("fitsheader2polygon: after astDownsize (reduced_flat_polygon=%p)", reduced_flat_polygon)));
 
 		// This is not the final polygon; we want it in the sky frame.
 	}
 
+	// ---
+	
+	if (!astGetI(reduced_flat_polygon, "Bounded")) {
+		astNegate(reduced_flat_polygon);
+	}
+	
+
 	// Get the points of this new reduced polygon.
-	// Again, this must be done in three steps: find out
-	// how many points there are, allocate the points array,
-	// then get the points.
+	// -------------------------------------------
+	
+	// Again, this must be done in three steps:
+	//    * find out how many points there are
+	//    * allocate the points array
+	//    * get the points.
 	
 	astGetRegionPoints(reduced_flat_polygon,	// the region
 					   0,						// maxpoint = 0, just return the point count
@@ -289,6 +299,17 @@ AstPolygon* fitsheader2polygon(const char *header, int *npoints) //, double *pol
 					   
 //	ereport(DEBUG1, (errmsg("fitsheader2polygon: after astGetRegionPoints (3)")));
 
+	// values to return
+	*npoints = num_points;
+	
+	astExport(reduced_flat_polygon);
+	astEnd;
+	return reduced_flat_polygon;
+	
+	// ===========================================================================
+	// ===========================================================================
+
+	
 	// allocate points array
 	points = (double*)palloc(maxcoord*num_points * sizeof(double));
 
@@ -327,8 +348,9 @@ AstPolygon* fitsheader2polygon(const char *header, int *npoints) //, double *pol
 
 //	ereport(DEBUG1, (errmsg("fitsheader2polygon: after pfree(points)")));
 
-	if (!astGetI(new_sky_polygon, "Bounded"))
+	if (!astGetI(new_sky_polygon, "Bounded")) {
 		astNegate(new_sky_polygon);
+	}
 		
 //	ereport(DEBUG1, (errmsg("fitsheader2polygon: after bounded check (num_points=%d)", num_points)));
 
