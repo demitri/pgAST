@@ -73,3 +73,6 @@ DerivedData
 .idea/
 *.hmap
 *.xccheckout
+
+## User settings
+xcuserdata/
