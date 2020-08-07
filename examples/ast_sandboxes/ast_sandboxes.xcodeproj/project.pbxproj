@@ -8,10 +8,23 @@
 
 /* Begin PBXBuildFile section */
 		A66C48F823E6F42F00DC1000 /* wcs_test.c in Sources */ = {isa = PBXBuildFile; fileRef = A66C48F723E6F42F00DC1000 /* wcs_test.c */; };
-		A66C48FB23E6F81200DC1000 /* libast.a in Frameworks */ = {isa = PBXBuildFile; fileRef = A66C48FA23E6F81200DC1000 /* libast.a */; };
-		A66C490323E6FDD400DC1000 /* getregiondisc_test.c in Sources */ = {isa = PBXBuildFile; fileRef = A66C490223E6FDD400DC1000 /* getregiondisc_test.c */; };
-		A66C490823E7023300DC1000 /* libast.a in Frameworks */ = {isa = PBXBuildFile; fileRef = A66C48FA23E6F81200DC1000 /* libast.a */; };
-		A6F90E9C23E712DA006F4079 /* pgast_custom.c in Sources */ = {isa = PBXBuildFile; fileRef = A6F90E9A23E712A0006F4079 /* pgast_custom.c */; };
+		A66C48FB23E6F81200DC1000 /* libast.la in Frameworks */ = {isa = PBXBuildFile; fileRef = A66C48FA23E6F81200DC1000 /* libast.la */; };
+		A671DE7A24DE14D300841291 /* pgast_custom.c in Sources */ = {isa = PBXBuildFile; fileRef = A6F90E9A23E712A0006F4079 /* pgast_custom.c */; };
+		A6BD91C3246A825200594B0D /* read_fits_header.c in Sources */ = {isa = PBXBuildFile; fileRef = A6BD91C2246A825200594B0D /* read_fits_header.c */; };
+		A6BD91D0246A83B100594B0D /* read_fits_header.c in Sources */ = {isa = PBXBuildFile; fileRef = A6BD91C2246A825200594B0D /* read_fits_header.c */; };
+		A6BD91D2246A841500594B0D /* libast.a in Frameworks */ = {isa = PBXBuildFile; fileRef = A6BD91D1246A841500594B0D /* libast.a */; };
+		A6D0A21C24DC6FBB00FE1A28 /* getregiondisc_test.c in Sources */ = {isa = PBXBuildFile; fileRef = A66C490223E6FDD400DC1000 /* getregiondisc_test.c */; };
+		A6D0A22124DC906800FE1A28 /* libast.a in Frameworks */ = {isa = PBXBuildFile; fileRef = A6D0A21D24DC729600FE1A28 /* libast.a */; };
+		A6D0A22324DC906800FE1A28 /* libast.9.dylib in Frameworks */ = {isa = PBXBuildFile; fileRef = A6D0A22224DC906800FE1A28 /* libast.9.dylib */; };
+		A6D0A22424DC907700FE1A28 /* libast.la in CopyFiles */ = {isa = PBXBuildFile; fileRef = A66C48FA23E6F81200DC1000 /* libast.la */; };
+		A6D0A22624DC9B6B00FE1A28 /* libast_err.a in Frameworks */ = {isa = PBXBuildFile; fileRef = A6D0A22524DC9B5F00FE1A28 /* libast_err.a */; };
+		A6D0A23624DCE7FA00FE1A28 /* pgast_util.c in Sources */ = {isa = PBXBuildFile; fileRef = A6D0A22924DCE7F900FE1A28 /* pgast_util.c */; };
+		A6D0A23724DCE7FA00FE1A28 /* pgast_bounding_circle.c in Sources */ = {isa = PBXBuildFile; fileRef = A6D0A22B24DCE7F900FE1A28 /* pgast_bounding_circle.c */; };
+		A6D0A23824DCE7FA00FE1A28 /* pgast_bounding_polygon.c in Sources */ = {isa = PBXBuildFile; fileRef = A6D0A22C24DCE7F900FE1A28 /* pgast_bounding_polygon.c */; };
+		A6D0A23924DCE7FA00FE1A28 /* pgast_pgast.c in Sources */ = {isa = PBXBuildFile; fileRef = A6D0A22F24DCE7F900FE1A28 /* pgast_pgast.c */; };
+		A6D0A23A24DCE7FA00FE1A28 /* pgast_getregiondisc.c in Sources */ = {isa = PBXBuildFile; fileRef = A6D0A23124DCE7F900FE1A28 /* pgast_getregiondisc.c */; };
+		A6D0A23B24DCE7FA00FE1A28 /* pgast_region_overlaps.c in Sources */ = {isa = PBXBuildFile; fileRef = A6D0A23324DCE7FA00FE1A28 /* pgast_region_overlaps.c */; };
+		A6D0A23C24DCE7FA00FE1A28 /* pgast_header2polygon.c in Sources */ = {isa = PBXBuildFile; fileRef = A6D0A23424DCE7FA00FE1A28 /* pgast_header2polygon.c */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXCopyFilesBuildPhase section */
@@ -33,7 +46,7 @@
 			);
 			runOnlyForDeploymentPostprocessing = 1;
 		};
-		A66C48FE23E6FDD400DC1000 /* CopyFiles */ = {
+		A6BD91CA246A836400594B0D /* CopyFiles */ = {
 			isa = PBXCopyFilesBuildPhase;
 			buildActionMask = 2147483647;
 			dstPath = /usr/share/man/man1/;
@@ -42,15 +55,46 @@
 			);
 			runOnlyForDeploymentPostprocessing = 1;
 		};
+		A6D0A21F24DC904800FE1A28 /* CopyFiles */ = {
+			isa = PBXCopyFilesBuildPhase;
+			buildActionMask = 2147483647;
+			dstPath = "";
+			dstSubfolderSpec = 6;
+			files = (
+				A6D0A22424DC907700FE1A28 /* libast.la in CopyFiles */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 /* End PBXCopyFilesBuildPhase section */
 
 /* Begin PBXFileReference section */
 		A66C48E123E6F3DE00DC1000 /* ast_sandboxes */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; path = ast_sandboxes; sourceTree = BUILT_PRODUCTS_DIR; };
 		A66C48EF23E6F40900DC1000 /* wcs_test */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; path = wcs_test; sourceTree = BUILT_PRODUCTS_DIR; };
 		A66C48F723E6F42F00DC1000 /* wcs_test.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = wcs_test.c; sourceTree = "<group>"; };
-		A66C48FA23E6F81200DC1000 /* libast.a */ = {isa = PBXFileReference; lastKnownFileType = archive.ar; name = libast.a; path = "../../../../../../../../../usr/local/ast-9.1.0/lib/libast.a"; sourceTree = "<group>"; };
+		A66C48FA23E6F81200DC1000 /* libast.la */ = {isa = PBXFileReference; lastKnownFileType = text; name = libast.la; path = "../../../../../../../../../usr/local/ast-9.1.2/lib/libast.la"; sourceTree = "<group>"; };
 		A66C490023E6FDD400DC1000 /* getregiondisc_test */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; path = getregiondisc_test; sourceTree = BUILT_PRODUCTS_DIR; };
 		A66C490223E6FDD400DC1000 /* getregiondisc_test.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; path = getregiondisc_test.c; sourceTree = "<group>"; };
+		A6BD91C1246A825200594B0D /* read_fits_header.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = read_fits_header.h; sourceTree = "<group>"; };
+		A6BD91C2246A825200594B0D /* read_fits_header.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; path = read_fits_header.c; sourceTree = "<group>"; };
+		A6BD91CE246A836400594B0D /* read_fits_header */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; path = read_fits_header; sourceTree = BUILT_PRODUCTS_DIR; };
+		A6BD91D1246A841500594B0D /* libast.a */ = {isa = PBXFileReference; lastKnownFileType = archive.ar; name = libast.a; path = "../../../../../../../../usr/local/ast-9.1.1/lib/libast.a"; sourceTree = "<group>"; };
+		A6D0A21D24DC729600FE1A28 /* libast.a */ = {isa = PBXFileReference; lastKnownFileType = archive.ar; name = libast.a; path = "../../../../../../../../usr/local/ast-9.1.2/lib/libast.a"; sourceTree = "<group>"; };
+		A6D0A22224DC906800FE1A28 /* libast.9.dylib */ = {isa = PBXFileReference; lastKnownFileType = "compiled.mach-o.dylib"; name = libast.9.dylib; path = "../../../../../../../../usr/local/ast-9.1.2/lib/libast.9.dylib"; sourceTree = "<group>"; };
+		A6D0A22524DC9B5F00FE1A28 /* libast_err.a */ = {isa = PBXFileReference; lastKnownFileType = archive.ar; name = libast_err.a; path = "../../../../../../../../usr/local/ast-9.1.2/lib/libast_err.a"; sourceTree = "<group>"; };
+		A6D0A22824DCE7F900FE1A28 /* pgast_region_overlaps.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = pgast_region_overlaps.h; path = ../../../src/pgast_region_overlaps.h; sourceTree = "<group>"; };
+		A6D0A22924DCE7F900FE1A28 /* pgast_util.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = pgast_util.c; path = ../../../src/pgast_util.c; sourceTree = "<group>"; };
+		A6D0A22A24DCE7F900FE1A28 /* pgast_macros.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = pgast_macros.h; path = ../../../src/pgast_macros.h; sourceTree = "<group>"; };
+		A6D0A22B24DCE7F900FE1A28 /* pgast_bounding_circle.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = pgast_bounding_circle.c; path = ../../../src/pgast_bounding_circle.c; sourceTree = "<group>"; };
+		A6D0A22C24DCE7F900FE1A28 /* pgast_bounding_polygon.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = pgast_bounding_polygon.c; path = ../../../src/pgast_bounding_polygon.c; sourceTree = "<group>"; };
+		A6D0A22D24DCE7F900FE1A28 /* pgast_header2polygon.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = pgast_header2polygon.h; path = ../../../src/pgast_header2polygon.h; sourceTree = "<group>"; };
+		A6D0A22E24DCE7F900FE1A28 /* pgast_pgast.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = pgast_pgast.h; path = ../../../src/pgast_pgast.h; sourceTree = "<group>"; };
+		A6D0A22F24DCE7F900FE1A28 /* pgast_pgast.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = pgast_pgast.c; path = ../../../src/pgast_pgast.c; sourceTree = "<group>"; };
+		A6D0A23024DCE7F900FE1A28 /* pgast_util.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = pgast_util.h; path = ../../../src/pgast_util.h; sourceTree = "<group>"; };
+		A6D0A23124DCE7F900FE1A28 /* pgast_getregiondisc.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = pgast_getregiondisc.c; path = ../../../src/pgast_getregiondisc.c; sourceTree = "<group>"; };
+		A6D0A23224DCE7F900FE1A28 /* pgast_bounding_polygon.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = pgast_bounding_polygon.h; path = ../../../src/pgast_bounding_polygon.h; sourceTree = "<group>"; };
+		A6D0A23324DCE7FA00FE1A28 /* pgast_region_overlaps.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = pgast_region_overlaps.c; path = ../../../src/pgast_region_overlaps.c; sourceTree = "<group>"; };
+		A6D0A23424DCE7FA00FE1A28 /* pgast_header2polygon.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = pgast_header2polygon.c; path = ../../../src/pgast_header2polygon.c; sourceTree = "<group>"; };
+		A6D0A23524DCE7FA00FE1A28 /* pgast_getregiondisc.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = pgast_getregiondisc.h; path = ../../../src/pgast_getregiondisc.h; sourceTree = "<group>"; };
 		A6F90E9923E712A0006F4079 /* pgast_custom.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = pgast_custom.h; sourceTree = "<group>"; };
 		A6F90E9A23E712A0006F4079 /* pgast_custom.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; path = pgast_custom.c; sourceTree = "<group>"; };
 /* End PBXFileReference section */
@@ -67,7 +111,7 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				A66C48FB23E6F81200DC1000 /* libast.a in Frameworks */,
+				A66C48FB23E6F81200DC1000 /* libast.la in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -75,7 +119,17 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				A66C490823E7023300DC1000 /* libast.a in Frameworks */,
+				A6D0A22324DC906800FE1A28 /* libast.9.dylib in Frameworks */,
+				A6D0A22624DC9B6B00FE1A28 /* libast_err.a in Frameworks */,
+				A6D0A22124DC906800FE1A28 /* libast.a in Frameworks */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		A6BD91C8246A836400594B0D /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				A6BD91D2246A841500594B0D /* libast.a in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -85,6 +139,8 @@
 		A66C48D823E6F3DE00DC1000 = {
 			isa = PBXGroup;
 			children = (
+				A6D0A22724DCE7E000FE1A28 /* pgAst */,
+				A6BD91C0246A822600594B0D /* read_fits_header */,
 				A6F90E9823E7127E006F4079 /* My functions */,
 				A66C48F023E6F40900DC1000 /* wcs_test */,
 				A66C490123E6FDD400DC1000 /* getregiondisc_test */,
@@ -100,6 +156,7 @@
 				A66C48E123E6F3DE00DC1000 /* ast_sandboxes */,
 				A66C48EF23E6F40900DC1000 /* wcs_test */,
 				A66C490023E6FDD400DC1000 /* getregiondisc_test */,
+				A6BD91CE246A836400594B0D /* read_fits_header */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -115,7 +172,7 @@
 		A66C48F923E6F7ED00DC1000 /* libraries */ = {
 			isa = PBXGroup;
 			children = (
-				A66C48FA23E6F81200DC1000 /* libast.a */,
+				A66C48FA23E6F81200DC1000 /* libast.la */,
 			);
 			path = libraries;
 			sourceTree = "<group>";
@@ -131,8 +188,42 @@
 		A66C490723E7023300DC1000 /* Frameworks */ = {
 			isa = PBXGroup;
 			children = (
+				A6D0A22524DC9B5F00FE1A28 /* libast_err.a */,
+				A6D0A22224DC906800FE1A28 /* libast.9.dylib */,
+				A6D0A21D24DC729600FE1A28 /* libast.a */,
+				A6BD91D1246A841500594B0D /* libast.a */,
 			);
 			name = Frameworks;
+			sourceTree = "<group>";
+		};
+		A6BD91C0246A822600594B0D /* read_fits_header */ = {
+			isa = PBXGroup;
+			children = (
+				A6BD91C1246A825200594B0D /* read_fits_header.h */,
+				A6BD91C2246A825200594B0D /* read_fits_header.c */,
+			);
+			path = read_fits_header;
+			sourceTree = "<group>";
+		};
+		A6D0A22724DCE7E000FE1A28 /* pgAst */ = {
+			isa = PBXGroup;
+			children = (
+				A6D0A22B24DCE7F900FE1A28 /* pgast_bounding_circle.c */,
+				A6D0A22C24DCE7F900FE1A28 /* pgast_bounding_polygon.c */,
+				A6D0A23224DCE7F900FE1A28 /* pgast_bounding_polygon.h */,
+				A6D0A23124DCE7F900FE1A28 /* pgast_getregiondisc.c */,
+				A6D0A23524DCE7FA00FE1A28 /* pgast_getregiondisc.h */,
+				A6D0A23424DCE7FA00FE1A28 /* pgast_header2polygon.c */,
+				A6D0A22D24DCE7F900FE1A28 /* pgast_header2polygon.h */,
+				A6D0A22A24DCE7F900FE1A28 /* pgast_macros.h */,
+				A6D0A22F24DCE7F900FE1A28 /* pgast_pgast.c */,
+				A6D0A22E24DCE7F900FE1A28 /* pgast_pgast.h */,
+				A6D0A23324DCE7FA00FE1A28 /* pgast_region_overlaps.c */,
+				A6D0A22824DCE7F900FE1A28 /* pgast_region_overlaps.h */,
+				A6D0A22924DCE7F900FE1A28 /* pgast_util.c */,
+				A6D0A23024DCE7F900FE1A28 /* pgast_util.h */,
+			);
+			path = pgAst;
 			sourceTree = "<group>";
 		};
 		A6F90E9823E7127E006F4079 /* My functions */ = {
@@ -187,7 +278,7 @@
 			buildPhases = (
 				A66C48FC23E6FDD400DC1000 /* Sources */,
 				A66C48FD23E6FDD400DC1000 /* Frameworks */,
-				A66C48FE23E6FDD400DC1000 /* CopyFiles */,
+				A6D0A21F24DC904800FE1A28 /* CopyFiles */,
 			);
 			buildRules = (
 			);
@@ -196,6 +287,23 @@
 			name = getregiondisc_test;
 			productName = getregiondisc_test;
 			productReference = A66C490023E6FDD400DC1000 /* getregiondisc_test */;
+			productType = "com.apple.product-type.tool";
+		};
+		A6BD91C4246A836400594B0D /* read_fits_header */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = A6BD91CB246A836400594B0D /* Build configuration list for PBXNativeTarget "read_fits_header" */;
+			buildPhases = (
+				A6BD91C5246A836400594B0D /* Sources */,
+				A6BD91C8246A836400594B0D /* Frameworks */,
+				A6BD91CA246A836400594B0D /* CopyFiles */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			name = read_fits_header;
+			productName = getregiondisc_test;
+			productReference = A6BD91CE246A836400594B0D /* read_fits_header */;
 			productType = "com.apple.product-type.tool";
 		};
 /* End PBXNativeTarget section */
@@ -234,6 +342,7 @@
 				A66C48E023E6F3DE00DC1000 /* ast_sandboxes */,
 				A66C48EE23E6F40900DC1000 /* wcs_test */,
 				A66C48FF23E6FDD400DC1000 /* getregiondisc_test */,
+				A6BD91C4246A836400594B0D /* read_fits_header */,
 			);
 		};
 /* End PBXProject section */
@@ -243,6 +352,14 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				A6D0A23C24DCE7FA00FE1A28 /* pgast_header2polygon.c in Sources */,
+				A6D0A23824DCE7FA00FE1A28 /* pgast_bounding_polygon.c in Sources */,
+				A6D0A23A24DCE7FA00FE1A28 /* pgast_getregiondisc.c in Sources */,
+				A6D0A23B24DCE7FA00FE1A28 /* pgast_region_overlaps.c in Sources */,
+				A6BD91C3246A825200594B0D /* read_fits_header.c in Sources */,
+				A6D0A23624DCE7FA00FE1A28 /* pgast_util.c in Sources */,
+				A6D0A23724DCE7FA00FE1A28 /* pgast_bounding_circle.c in Sources */,
+				A6D0A23924DCE7FA00FE1A28 /* pgast_pgast.c in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -258,8 +375,16 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				A6F90E9C23E712DA006F4079 /* pgast_custom.c in Sources */,
-				A66C490323E6FDD400DC1000 /* getregiondisc_test.c in Sources */,
+				A671DE7A24DE14D300841291 /* pgast_custom.c in Sources */,
+				A6D0A21C24DC6FBB00FE1A28 /* getregiondisc_test.c in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		A6BD91C5246A836400594B0D /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				A6BD91D0246A83B100594B0D /* read_fits_header.c in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -398,7 +523,7 @@
 				HEADER_SEARCH_PATHS = "${AST}/include";
 				LIBRARY_SEARCH_PATHS = (
 					"${AST}/lib",
-					"/usr/local/ast-9.1.0/lib",
+					/usr/local/ast/lib,
 				);
 				PRODUCT_NAME = "$(TARGET_NAME)";
 			};
@@ -411,7 +536,7 @@
 				HEADER_SEARCH_PATHS = "${AST}/include";
 				LIBRARY_SEARCH_PATHS = (
 					"${AST}/lib",
-					"/usr/local/ast-9.1.0/lib",
+					/usr/local/ast/lib,
 				);
 				PRODUCT_NAME = "$(TARGET_NAME)";
 			};
@@ -424,7 +549,8 @@
 				HEADER_SEARCH_PATHS = "${AST}/include";
 				LIBRARY_SEARCH_PATHS = (
 					"${AST}/lib",
-					"/usr/local/ast-9.1.0/lib",
+					/usr/local/ast/lib,
+					"/usr/local/ast-9.1.2/lib",
 				);
 				PRODUCT_NAME = "$(TARGET_NAME)";
 			};
@@ -437,7 +563,34 @@
 				HEADER_SEARCH_PATHS = "${AST}/include";
 				LIBRARY_SEARCH_PATHS = (
 					"${AST}/lib",
-					"/usr/local/ast-9.1.0/lib",
+					/usr/local/ast/lib,
+					"/usr/local/ast-9.1.2/lib",
+				);
+				PRODUCT_NAME = "$(TARGET_NAME)";
+			};
+			name = Release;
+		};
+		A6BD91CC246A836400594B0D /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_STYLE = Automatic;
+				HEADER_SEARCH_PATHS = "${AST}/include";
+				LIBRARY_SEARCH_PATHS = (
+					"${AST}/lib",
+					/usr/local/ast/lib,
+				);
+				PRODUCT_NAME = "$(TARGET_NAME)";
+			};
+			name = Debug;
+		};
+		A6BD91CD246A836400594B0D /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_STYLE = Automatic;
+				HEADER_SEARCH_PATHS = "${AST}/include";
+				LIBRARY_SEARCH_PATHS = (
+					"${AST}/lib",
+					/usr/local/ast/lib,
 				);
 				PRODUCT_NAME = "$(TARGET_NAME)";
 			};
@@ -478,6 +631,15 @@
 			buildConfigurations = (
 				A66C490523E6FDD400DC1000 /* Debug */,
 				A66C490623E6FDD400DC1000 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		A6BD91CB246A836400594B0D /* Build configuration list for PBXNativeTarget "read_fits_header" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				A6BD91CC246A836400594B0D /* Debug */,
+				A6BD91CD246A836400594B0D /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
