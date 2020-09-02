@@ -113,6 +113,17 @@ This function takes a PostgreSQL polygon, assumed to be in the ICRS coordinate s
 pgast_icrs_polygon_overlaps_hdu(polygon icrs_polygon, text fits_header_as_string)
 ```
 
+### `pgast_distance`
+
+##### Calculate distance between two points on a sphere.
+
+This function takes two points `x0,y0` and `x1,y1` and calculates the angular distance between them along a great circle. Both input and output values are in degrees.
+
+```sql
+pgast_distance(x0_deg double precision, y0_deg double precision,
+               x1_deg double precision, y1_deg double precision);
+```
+
 ## Developer Notes
 
 This section is intended for those who are interested in working with the source code.
