@@ -2,7 +2,10 @@
 //#include "ast.h"
 #include "pgast.h"
 #include "pgast_util.h"
+#include <math.h>
 
+#define degToRad(angleInDegrees) ((angleInDegrees) * M_PI / 180.0)
+#define radToDeg(angleInRadians) ((angleInRadians) * 180.0 / M_PI)
 /**
  Convert a POLYGON object to an array of points suitable to
  be passed to AST classes. This function assumes:
@@ -162,3 +165,37 @@ void pgarray_to_double_array(ArrayType *array, double *data, int *nelements)
 }
 */
 
+/*
+ This function is a wrapper around the astDistance function
+ that calculates the great circle distance of two points on
+ a sphere. Input and output values are in degrees.
+ */
+PG_FUNCTION_INFO_V1(pgast_distance);
+Datum
+pgast_distance(PG_FUNCTION_ARGS) // double x0, y0, x1, y1
+{
+	// get function args
+	// -----------------
+	double x0 = PG_GETARG_FLOAT8(0);
+	double y0 = PG_GETARG_FLOAT8(1);
+	double x1 = PG_GETARG_FLOAT8(2);
+	double y1 = PG_GETARG_FLOAT8(3);
+
+	// internal variables
+	// ------------------
+	const double point1[2]= {deg2rad(x0), deg2rad(y0)};
+	const double point2[2]= {deg2rad(x1), deg2rad(y1)};
+	double distance;
+
+	astBegin;
+	
+	// Since we're not converting points from one frame to another,
+	// just pick a sky frame to work in.
+	AstSkyFrame *icrs_frame = astSkyFrame("System=ICRS, Equinox=J2000");
+
+	distance = rad2deg(astDistance(icrs_frame, point1, point2));
+	
+	astEnd;
+
+	PG_RETURN_FLOAT8(distance);
+}

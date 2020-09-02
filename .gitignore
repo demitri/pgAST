@@ -1,6 +1,7 @@
 
 a.out
 *.bc
+*.swp
 
 # Prerequisites
 *.d

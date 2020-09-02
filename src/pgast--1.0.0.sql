@@ -35,3 +35,8 @@ LANGUAGE C IMMUTABLE STRICT;
 CREATE OR REPLACE FUNCTION pgast_icrs_polygon_overlaps_hdu(polygon, text) RETURNS bool
 AS 'MODULE_PATHNAME', 'pgast_icrs_polygon_overlaps_hdu'
 LANGUAGE C IMMUTABLE STRICT;
+
+CREATE OR REPLACE FUNCTION pgast_distance(x0_deg double precision, y0_deg double precision, x1_deg double precision, y1_deg double precision) RETURNS double precision
+AS 'MODULE_PATHNAME', 'pgast_distance'
+LANGUAGE C IMMUTABLE STRICT;
+

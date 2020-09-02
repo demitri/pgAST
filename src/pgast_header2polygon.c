@@ -62,6 +62,8 @@ AstPolygon* fitsheader2polygon(const char *header, int *npoints) //, double *pol
 
 //	ereport(DEBUG1, (errmsg("fitsheader2polygon: after astPutCards")));
 	
+	ereport(DEBUG1,  (errmsg("header:\n%s", header)));
+	
 	if (!astOK) {
 		printf("pgAST error (fitsheader2polygon): An error occurred when reading the FITS header (status=%d).\n", astStatus);
 		astEnd;

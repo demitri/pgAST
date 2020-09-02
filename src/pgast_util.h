@@ -12,6 +12,8 @@
 void pgPolygon2astPoints(POLYGON *polygon, double *points);
 AstPolygon* pgPolygon2astPolygon(POLYGON *polygon, AstSkyFrame *frame);
 
+Datum pgast_distance(PG_FUNCTION_ARGS);
+
 //void pgpolygon2astPolygon(POLYGON *polygon, double *points, AstFrame *frame);
 //void pgarray_to_double_array(ArrayType *array, double *data, int *nelements);
 
