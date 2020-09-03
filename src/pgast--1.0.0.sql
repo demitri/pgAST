@@ -40,3 +40,11 @@ CREATE OR REPLACE FUNCTION pgast_distance(x0_deg double precision, y0_deg double
 AS 'MODULE_PATHNAME', 'pgast_distance'
 LANGUAGE C IMMUTABLE STRICT;
 
+CREATE OR REPLACE FUNCTION pgast_distance(x0_deg double precision, y0_deg double precision, point) RETURNS double precision
+AS 'MODULE_PATHNAME', 'pgast_distance_radec_point'
+LANGUAGE C IMMUTABLE STRICT;
+
+CREATE OR REPLACE FUNCTION pgast_distance(point, point) RETURNS double precision
+AS 'MODULE_PATHNAME', 'pgast_distance_points'
+LANGUAGE C IMMUTABLE STRICT;
+

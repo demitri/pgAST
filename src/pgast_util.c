@@ -169,6 +169,11 @@ void pgarray_to_double_array(ArrayType *array, double *data, int *nelements)
  This function is a wrapper around the astDistance function
  that calculates the great circle distance of two points on
  a sphere. Input and output values are in degrees.
+ 
+ Three function signatures:
+ x0, y0, x1, y1
+ x0, y0, pg_point
+ pg_point1, pg_point2
  */
 PG_FUNCTION_INFO_V1(pgast_distance);
 Datum
@@ -199,3 +204,61 @@ pgast_distance(PG_FUNCTION_ARGS) // double x0, y0, x1, y1
 
 	PG_RETURN_FLOAT8(distance);
 }
+
+PG_FUNCTION_INFO_V1(pgast_distance_radec_point); // x0,y0,point1
+Datum
+pgast_distance_radec_point(PG_FUNCTION_ARGS)
+{
+	// get function args
+	// -----------------
+	double x0 = PG_GETARG_FLOAT8(0);
+	double y0 = PG_GETARG_FLOAT8(1);
+	Point *p = PG_GETARG_POINT_P(2);
+	
+	// internal variables
+	// ------------------
+	const double point1[2]= {deg2rad(x0), deg2rad(y0)};
+	const double point2[2]= {deg2rad(p->x), deg2rad(p->y)};
+	double distance;
+	
+	astBegin;
+	
+	// Since we're not converting points from one frame to another,
+	// just pick a sky frame to work in.
+	AstSkyFrame *icrs_frame = astSkyFrame("System=ICRS, Equinox=J2000");
+	
+	distance = rad2deg(astDistance(icrs_frame, point1, point2));
+	
+	astEnd;
+	
+	PG_RETURN_FLOAT8(distance);
+}
+
+PG_FUNCTION_INFO_V1(pgast_distance_points); // point1,point2
+Datum
+pgast_distance_points(PG_FUNCTION_ARGS)
+{
+	// get function args
+	// -----------------
+	Point *p1 = PG_GETARG_POINT_P(0);
+	Point *p2 = PG_GETARG_POINT_P(1);
+	
+	// internal variables
+	// ------------------
+	const double point1[2]= {deg2rad(p1->x), deg2rad(p1->y)};
+	const double point2[2]= {deg2rad(p2->x), deg2rad(p2->y)};
+	double distance;
+	
+	astBegin;
+	
+	// Since we're not converting points from one frame to another,
+	// just pick a sky frame to work in.
+	AstSkyFrame *icrs_frame = astSkyFrame("System=ICRS, Equinox=J2000");
+	
+	distance = rad2deg(astDistance(icrs_frame, point1, point2));
+	
+	astEnd;
+	
+	PG_RETURN_FLOAT8(distance);
+}
+
