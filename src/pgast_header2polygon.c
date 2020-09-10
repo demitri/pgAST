@@ -9,6 +9,9 @@
 //#define deg2rad(angleDegrees) ((angleDegrees) * M_PI / 180.0)
 //#define rad2deg(angleRadians) ((angleRadians) * 180.0 / M_PI)
 
+void normalize_ast_array(AstFrame *frame, double *points, int npairs); // npairs = number of coordinate pairs
+
+
 AstPolygon* fitsheader2polygon(const char *header, int *npoints) //, double *polygon, int *npoints)
 {
 	//int npoints;
@@ -45,7 +48,7 @@ AstPolygon* fitsheader2polygon(const char *header, int *npoints) //, double *pol
 	AstBox *pixelbox, *skybox;
 	AstFrameSet *wcs_frames;
 	AstFrame *pixel_frame, *sky_frame, *basic_frame;
-	AstPolygon *flat_polygon, *reduced_flat_polygon, *new_sky_polygon;
+	AstPolygon *flat_polygon, *reduced_flat_polygon, *sky_frame_polygon;
 	double *points, *mesh_points;
 	
 	astBegin;
@@ -70,33 +73,17 @@ AstPolygon* fitsheader2polygon(const char *header, int *npoints) //, double *pol
 		return AST__NULL;
 	}
 
-	// Read the WCS info from the header
-	wcs_frames = astRead(fitsChan);
+	// rewind the FitsChan, see section 16.4 in sun211.pdf
+	// This sets the current position of the cards to the first one.
+	astClear(fitsChan, "Card");
 
-//	ereport(DEBUG1, (errmsg("fitsheader2polygon: after wcs_frames")));
-
-	if (wcs_frames == AST__NULL) {
-		ereport(ERROR, (errmsg("pgAST error (fitsheader2polygon): No valid WCS could be read from header.")));
-		astEnd;
-		return AST__NULL;
-	}
-		
 	//ereport(DEBUG1,(errmsg("pgast: Header:")));
 	//ereport(DEBUG1,(errmsg("%s", header)));
 	
-	// The resulting object contains two frames:
-	// the pixel frame and the "sky" frame.
-	pixel_frame = astGetFrame(wcs_frames, AST__BASE);
-	sky_frame = astGetFrame(wcs_frames, AST__CURRENT);
-	if (astIsASkyFrame(sky_frame) == 0) { // returns 1 if yes, 0 if no
-		ereport(ERROR, (errmsg("pgAST error (fitsheader2polygon): The provided WCS does not contain a sky frame.")));
-		astEnd;
-		return AST__NULL;
-	}
-
 //	ereport(DEBUG1, (errmsg("fitsheader2polygon: after getFrames")));
 
-	// get the image dimensions, read from header
+	// Read the image dimensions from the header
+	// -----------------------------------------
 	{
 		// read NAXIS value
 		// ----------------
@@ -141,6 +128,33 @@ AstPolygon* fitsheader2polygon(const char *header, int *npoints) //, double *pol
 			return AST__NULL;
 		}
 	}
+
+	// ---------------------------------------------
+	// Read the WCS info from the header.
+	// It's better to get specific values from the header before calling
+	// astRead as the function may delete the header if it's considered
+	// part of the WCS information.
+	astClear(fitsChan, "Card"); // reset position to start of header
+	wcs_frames = astRead(fitsChan);
+	
+	if (wcs_frames == AST__NULL) {
+		ereport(ERROR, (errmsg("pgAST error (fitsheader2polygon): No valid WCS could be read from header.")));
+		astEnd;
+		return AST__NULL;
+	}
+
+	// The resulting object contains two frames:
+	// the pixel frame and the "sky" frame.
+	pixel_frame = astGetFrame(wcs_frames, AST__BASE);
+	sky_frame = astGetFrame(wcs_frames, AST__CURRENT);
+	if (astIsASkyFrame(sky_frame) == 0) { // returns 1 if yes, 0 if no
+		ereport(ERROR, (errmsg("pgAST error (fitsheader2polygon): The provided WCS does not contain a sky frame.")));
+		astEnd;
+		return AST__NULL;
+	}
+	// ---------------------------------------------
+
+	
 	// Create a "box" object that covers the extent of the
 	// image in pixel coordinates.
 	//
@@ -172,8 +186,8 @@ AstPolygon* fitsheader2polygon(const char *header, int *npoints) //, double *pol
 	// since that is the frame 'pixelbox' is in.
 	// (Note that a frame set can also act as a mapping.)
 	skybox = astMapRegion(pixelbox,
-						  wcs_frames,   // map
-						  sky_frame); //wcs_frames);  // frame
+						  wcs_frames, // map
+						  sky_frame); // frame
 
 //	ereport(DEBUG1, (errmsg("fitsheader2polygon: after astMapRegion (skybox=%p)", skybox)));
 
@@ -197,7 +211,7 @@ AstPolygon* fitsheader2polygon(const char *header, int *npoints) //, double *pol
 	//    - call again with allocated array
 	//
 	surface = 1;  // non-zero = fit points on  surface (2D -> boundary) of region
-	//num_points; // return value
+	//num_points; // return value (declared above)
 	maxcoord = 2; // number of axis values per point (e.g. 2D image = 2)
 	maxpoint = 0; // 0 = number of points fits returned in "npoint"
 	
@@ -230,14 +244,29 @@ AstPolygon* fitsheader2polygon(const char *header, int *npoints) //, double *pol
 					 maxcoord,	// number of axes of region (2D image = 2)
 					 &num_points,	// returns the number of points needed (no. of (x,y) pairs)
 					 mesh_points); // the array of points
+	
+	//for (int i=0; i < 2*num_points; i++)
+	//	ereport(WARNING, (errmsg("%f", rad2deg(mesh_points[i]))));
+	
+	// Normalize the points to [0,360); needed if the original frame is a basic frame
+	// This is not needed for a sky frame as d = d + 360 in that case, but doesn't hurt.
+	for (int i=0; i < num_points; i++) {
+		//astNorm(skybox, &mesh_points[2*i]);
+		//astNorm(skyBox, {mesh_points[i], mesh_points[2*i]});
+	}
 
+	//ereport(WARNING, (errmsg("===")));
+	
+	//for (int i=0; i < num_points; i++)
+	//	ereport(WARNING, (errmsg("%f, %f", rad2deg(mesh_points[i]), rad2deg(mesh_points[2*i]))));
+	
 	if (!astOK) {
 		ereport(WARNING, (errmsg("pgAST error (fitsheader2polygon): astGetRegionMesh (2) failed. (status=%d", astStatus)));
 		pfree(mesh_points);
 		astEnd;
 		return AST__NULL;
 	}
-
+	
 	// The returned array is in the form:
 	// [x1, x2, ..., xn, y1, y2, ..., yn] in RADIANS.
 	// (or more specifically, [ra1, ..., ran, dec1, ..., decn]
@@ -304,23 +333,20 @@ AstPolygon* fitsheader2polygon(const char *header, int *npoints) //, double *pol
 	// values to return
 	*npoints = num_points;
 	
-	astExport(reduced_flat_polygon);
-	astEnd;
-	return reduced_flat_polygon;
-	
-	// ===========================================================================
-	// ===========================================================================
-
-	
+	//astExport(reduced_flat_polygon);
+	//astEnd;
+	//return reduced_flat_polygon;
+		
 	// allocate points array
 	points = (double*)palloc(maxcoord*num_points * sizeof(double));
 
 	maxpoint = num_points; // length of second dimension of points array
-	maxcoord = num_points;
+	//maxcoord = num_points;
 	
+	// get the points
 	astGetRegionPoints(reduced_flat_polygon,	// the region
-					   maxpoint,
-					   maxcoord,
+					   maxpoint,	// length of the second dimension
+					   maxcoord,	// number of axes of region (2D image = 2)
 					   &num_points,
 					   points);		// returned array
 
@@ -336,22 +362,47 @@ AstPolygon* fitsheader2polygon(const char *header, int *npoints) //, double *pol
 #pragma GCC diagnostic ignored "-Wformat-security"
 	// Finally, create a new polygon in the sky frame with these points.
 	//
-	new_sky_polygon = astPolygon(sky_frame,
-								 num_points,
-								 num_points,
-								 points,
-								 AST__NULL,
-								 "");
+	sky_frame_polygon = astPolygon(sky_frame,	// frame is copied
+								   num_points,	// number of points in region
+								   num_points,	// dim - number of elements along 2nd dimension of points array
+								   points,		// 2D array of mesh points
+								   AST__NULL,	// uncertainty
+								   "");			// options
 #pragma GCC diagnostic pop
 
-//	ereport(DEBUG1, (errmsg("fitsheader2polygon: after new_sky_polygon created (new_sky_polygon=%p)", new_sky_polygon)));
+//	ereport(DEBUG1, (errmsg("fitsheader2polygon: after sky_frame_polygon created (sky_frame_polygon=%p)", sky_frame_polygon)));
 
 	pfree(points);
 
 //	ereport(DEBUG1, (errmsg("fitsheader2polygon: after pfree(points)")));
 
-	if (!astGetI(new_sky_polygon, "Bounded")) {
-		astNegate(new_sky_polygon);
+	if (!astGetI(sky_frame_polygon, "Bounded")) {
+		astNegate(sky_frame_polygon);
+	}
+	
+	// The order in which the vertices are supplied to the polygon constructor above
+	// defines which side of the polygon boundary is the inside and which is the
+	// outside. Since we do not know the order of the points returned by the
+	// getregionpoints or boundarypointmesh methods, we check now that the
+	// central pixel in the FITS image is "inside" the polygon, and negate
+	// the polygon if it is not.
+	//
+	{
+		const double point_in[2] = { dim1 / 2., dim2 / 2. }; // point in center of polygon
+		//const double[1] y_in  = { dim2 / 2.};
+		double point_out[2];
+		//const double[1] y_out;
+		astTran2(wcs_frames,					// mapping
+				 1,								// number of points to be transformed
+				 &point_in[0], &point_out[1],	// untransformed points (in)
+				 1,								// non-zero == forward transform
+				 &point_out[1], &point_out[0]);	// transformed points (out)
+		
+		ereport(DEBUG1, (errmsg("point in: (%f, %f), point out: (%f, %f)", point_in[0], point_in[1], point_out[0], point_out[1])));
+
+		if (astPointInRegion(sky_frame_polygon, point_out)) {
+			astNegate(sky_frame_polygon);
+		}
 	}
 		
 //	ereport(DEBUG1, (errmsg("fitsheader2polygon: after bounded check (num_points=%d)", num_points)));
@@ -361,11 +412,40 @@ AstPolygon* fitsheader2polygon(const char *header, int *npoints) //, double *pol
 
 //	ereport(DEBUG1, (errmsg("fitsheader2polygon: before astExport")));
 
-	astExport(new_sky_polygon);
+	astExport(sky_frame_polygon);
 
 	astEnd;
 
 //	ereport(DEBUG1, (errmsg("fitsheader2polygon: before return")));
 
-	return new_sky_polygon;
+	return sky_frame_polygon;
+}
+
+// The code below is untested!! And currently not used.
+
+/*
+ The function astNorm is used to normalize ra,dec points on [0,360) and [-90,90],
+ respectively (except in radians).
+ Unfortunately, it only works on one point at a time. This is a convenience function
+ to take arrays of points like those returned by astGetRegionPoints and astDownsize
+ and normalizes the whole array.
+ 
+ Note that these arrays are arranged by [ra1, ra2, ..., ran, dec1, dec2, ..., decn]
+ */
+void normalize_ast_array(AstFrame *frame, double *points, int npairs) // npairs = number of coordinate pairs
+{
+	double coordinate[2];
+		
+	// signature: void astNorm( AstFrame ∗this, double value[] )
+	
+	for (int i=0; i < npairs; i++) {
+		
+		coordinate[0] = points[i];
+		coordinate[1] = points[npairs+i];
+		
+		astNorm(frame, coordinate);
+		
+		points[i] = coordinate[0];
+		points[npairs+i] = coordinate[1];
+	}
 }
