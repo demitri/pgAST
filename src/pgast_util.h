@@ -10,6 +10,7 @@
 //#include "utils/geo_decls.h" // POLYGON support
 
 void pgPolygon2astPoints(POLYGON *polygon, double *points);
+AstFitsChan* cstring2fitsChan(const char *header);
 AstPolygon* pgPolygon2astPolygon(POLYGON *polygon, AstSkyFrame *frame);
 
 Datum pgast_distance(PG_FUNCTION_ARGS); // x0,y0,x1,y1

@@ -30,6 +30,37 @@ void pgPolygon2astPoints(POLYGON *polygon, double *points)
 }
 
 /**
+Convert a FITS header, provided in the form of a single C string, into a FitsChan object.
+This function assumes it will be called in between astBegin/astEnd.
+*/
+AstFitsChan* cstring2fitsChan(const char *header)
+{
+	AstFitsChan *fitsChan;
+	
+// Create an empty FITS channel (AST object that holds a FITS header)
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wformat-security"
+#pragma GCC diagnostic ignored "-Wformat-zero-length"
+	fitsChan = astFitsChan( NULL, NULL, "");
+#pragma GCC diagnostic pop
+	astPutCards( fitsChan, header ); // add all cards at once
+
+	ereport(DEBUG1,  (errmsg("header:\n%s", header)));
+	
+	if (!astOK) {
+		printf("pgAST error (fitsheader2polygon): An error occurred when reading the FITS header (status=%d).\n", astStatus);
+		astEnd;
+		return AST__NULL;
+	}
+
+	// rewind the FitsChan, see section 16.4 in sun211.pdf
+	// This sets the current position of the cards to the first one.
+	astClear(fitsChan, "Card");
+
+	return fitsChan;
+}
+
+/**
 Convert a POLYGON object to an AstPolygon object. This function assumes:
     - points are in degrees
 

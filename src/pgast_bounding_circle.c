@@ -87,7 +87,8 @@ pgast_bounding_circle(polygon polygon)
 
 @param fits_header a FITS header as a single string.
  
-*/PG_FUNCTION_INFO_V1(pgast_bounding_circle_polygon);
+*/
+PG_FUNCTION_INFO_V1(pgast_bounding_circle_polygon);
 Datum
 pgast_bounding_circle_polygon(PG_FUNCTION_ARGS) // (polygon polygon)
 {

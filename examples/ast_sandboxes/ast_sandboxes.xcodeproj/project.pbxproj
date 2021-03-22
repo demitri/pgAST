@@ -209,10 +209,10 @@
 			isa = PBXGroup;
 			children = (
 				A6D0A22B24DCE7F900FE1A28 /* pgast_bounding_circle.c */,
-				A6D0A22C24DCE7F900FE1A28 /* pgast_bounding_polygon.c */,
 				A6D0A23224DCE7F900FE1A28 /* pgast_bounding_polygon.h */,
-				A6D0A23124DCE7F900FE1A28 /* pgast_getregiondisc.c */,
+				A6D0A22C24DCE7F900FE1A28 /* pgast_bounding_polygon.c */,
 				A6D0A23524DCE7FA00FE1A28 /* pgast_getregiondisc.h */,
+				A6D0A23124DCE7F900FE1A28 /* pgast_getregiondisc.c */,
 				A6D0A23424DCE7FA00FE1A28 /* pgast_header2polygon.c */,
 				A6D0A22D24DCE7F900FE1A28 /* pgast_header2polygon.h */,
 				A6D0A22A24DCE7F900FE1A28 /* pgast_macros.h */,
@@ -220,8 +220,8 @@
 				A6D0A22E24DCE7F900FE1A28 /* pgast_pgast.h */,
 				A6D0A23324DCE7FA00FE1A28 /* pgast_region_overlaps.c */,
 				A6D0A22824DCE7F900FE1A28 /* pgast_region_overlaps.h */,
-				A6D0A22924DCE7F900FE1A28 /* pgast_util.c */,
 				A6D0A23024DCE7F900FE1A28 /* pgast_util.h */,
+				A6D0A22924DCE7F900FE1A28 /* pgast_util.c */,
 			);
 			path = pgAst;
 			sourceTree = "<group>";

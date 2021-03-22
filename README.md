@@ -12,7 +12,7 @@ Only a few functions are currently defined; more will be added over time. This p
 
 Building pgAST requires the [Starlink AST Library](https://github.com/Starlink/ast) to be installed. Note the path where this is installed to use for the `make` command (i.e. replace `/usr/local/ast` below with your location).
 
-From top level of PgAST directory:
+From the `src` directory:
 
 ```bash
 make clean; make AST=/usr/local/ast

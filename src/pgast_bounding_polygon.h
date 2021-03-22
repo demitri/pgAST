@@ -4,4 +4,4 @@
 
 //AstPolygon* fitsheader2polygon(const char *header);
 
-#endif /* __PGAST_GETREGIONDISC_H__ */
+#endif /* __PGAST_BOUNDING_POLYGON_H__ */

@@ -9,6 +9,9 @@
 //#define deg2rad(angleDegrees) ((angleDegrees) * M_PI / 180.0)
 //#define rad2deg(angleRadians) ((angleRadians) * 180.0 / M_PI)
 
+#define PIXEL2WORLD 1
+#define WORLD2PIXEL 0
+
 void normalize_ast_array(AstFrame *frame, double *points, int npairs); // npairs = number of coordinate pairs
 
 
@@ -138,7 +141,7 @@ AstPolygon* fitsheader2polygon(const char *header, int *npoints) //, double *pol
 	wcs_frames = astRead(fitsChan);
 	
 	if (wcs_frames == AST__NULL) {
-		ereport(ERROR, (errmsg("pgAST error (fitsheader2polygon): No valid WCS could be read from header.")));
+		ereport(ERROR, (errmsg("pgAST error (fitsheader2polygon): No valid WCS could be read from the provided header.")));
 		astEnd;
 		return AST__NULL;
 	}
