@@ -12,6 +12,7 @@
 
 #define PIXEL2WORLD 1
 #define WORLD2PIXEL 0
+#define SIGN(x) ((x > 0) - (x < 0))
 
 /**
  This function takes a sky position and a returns a polygon that describes a cutout with the provided side length.
@@ -26,24 +27,25 @@ pgast_cutout(PG_FUNCTION_ARGS) // (fits_header text, ra double, dec double, side
 {
 	// get function args
 	// -----------------
-	char* fits_header = text_to_cstring(PG_GETARG_TEXT_PP(0)); // return a null-terminated C string
-	double ra  = PG_GETARG_FLOAT8(1);// in degrees
-	double dec = PG_GETARG_FLOAT8(2); // in degrees
-	double side_length = PG_GETARG_FLOAT8(3); // in arcsec
+	const char* fits_header = text_to_cstring(PG_GETARG_TEXT_PP(0)); // return a null-terminated C string
+	const double ra  = PG_GETARG_FLOAT8(1);// in degrees
+	const double dec = PG_GETARG_FLOAT8(2); // in degrees
+	const double side_length = PG_GETARG_FLOAT8(3); // in arcsec
 	
 	// internal variables
 	// ------------------
 	POLYGON *pg_polygon;
 	int base_size, size;
 	
-	double half_side_length = deg2rad(side_length/2.);
-	FitsChan *fitsChan;
+	const double half_side_length = deg2rad(side_length/2.);
+	AstFitsChan *fitsChan;
 	AstFrameSet *wcs_frames;
-	const double p0_pix[2], p0_world[2];
-	const double p1_pix[2], p1_world[2];
-	const double p2_pix[2], p2_world[2];
-	const double x1_pix[2], x1_world[2];
-	const double x2_pix[2], x2_world[2];
+	AstFrame *sky_frame; // *pixel_frame
+	double p0_pix[2], p0_world[2];
+	double p1_pix[2], p1_world[2];
+	double p2_pix[2], p2_world[2];
+	double x1_pix[2], x1_world[2];
+	double x2_pix[2], x2_world[2];
 	int dx, dy; // lengths of sides of cutout in pixels
 	double corners_pix_x[4], corners_pix_y[4];  // vertices of final polygon
 	double corners_world_ra[4], corners_world_dec[4];
@@ -93,76 +95,82 @@ pgast_cutout(PG_FUNCTION_ARGS) // (fits_header text, ra double, dec double, side
 	
 	// ---------------------------------------------
 	// Read the WCS info from the header.
-	fitsChan = cstring2fitsChan(header);
+	fitsChan = cstring2fitsChan(fits_header);
 	wcs_frames = astRead(fitsChan);
 	
 	if (wcs_frames == AST__NULL) {
 		ereport(ERROR, (errmsg("pgAST error (pgast_cutout): No valid WCS could be read from the provided header.")));
 		astEnd;
-		return AST__NULL;
+		PG_RETURN_NULL();
 	}
 
 	// The resulting object contains two frames:
 	// the pixel frame and the "sky" frame.
-	pixel_frame = astGetFrame(wcs_frames, AST__BASE);
+	//pixel_frame = astGetFrame(wcs_frames, AST__BASE); // not needed, here if it is later
 	sky_frame = astGetFrame(wcs_frames, AST__CURRENT);
-	if (astIsASkyFrame(sky_frame) == 0) { // returns 1 if yes, 0 if no
+	if (sky_frame == AST__NULL || astIsASkyFrame(sky_frame) == 0) { // returns 1 if yes, 0 if no
 		ereport(ERROR, (errmsg("pgAST error (fitsheader2polygon): The provided WCS does not contain a sky frame.")));
 		astEnd;
-		return AST__NULL;
+		PG_RETURN_NULL();
 	}
 	// ---------------------------------------------
 
-	// calculate p0_pixel
+	// calculate p0_pix
 	astTran2(wcs_frames,                   // mapping
 	         1,                            // number of points to be transformed
 			 &p0_world[0], &p0_world[1],   // untransformed points (in)
 			 WORLD2PIXEL,                  // non-zero == forward transform
-			 &p0_pixel[0], &p0_pixel[1]);  // transformed points (out)
+			 &p0_pix[0], &p0_pix[1]);      // transformed points (out)
 
 	// find p1 by moving to bottom of pixel grid, i.e. straight down from p0
-	p1_pixel[0] = p0_pix[0];
-	p1_pixel[1] = -1; // use -1 instead of zero in case p0 is at edge of image
+	p1_pix[0] = p0_pix[0];
+	p1_pix[1] = -1; // use -1 instead of zero in case p0 is at edge of image
 	
 	// calculate p1_world
 	astTran2(wcs_frames,                   // mapping
 			 1,                            // number of points to be transformed
-			 &p1_pixel[0], &p1_pixel[1],   // untransformed points (in)
+			 &p1_pix[0], &p1_pix[1],       // untransformed points (in)
 			 PIXEL2WORLD,                  // non-zero == forward transform
 			 &p1_world[0], &p1_world[1]);  // transformed points (out)
 
 	// find x1 as an offset from p0 towards p1
 	astOffset(wcs_frames, p0_world, p1_world, half_side_length, x1_world);
 	
-	// get pixel location x1_world -> x1_pixel
+	// get pixel location x1_world -> x1_pix
 	astTran2(wcs_frames,                   // mapping
 			 1,                            // number of points to be transformed
 			 &x1_world[0], &x1_world[1],   // untransformed points (in)
 			 WORLD2PIXEL,                  // non-zero == forward transform
-			 &x1_pixel[0], &x1_pixel[1]);  // transformed points (out)
+			 &x1_pix[0], &x1_pix[1]);      // transformed points (out)
 
-	// define p2: move along other pixel axis from x1_pixel
-	p2_pix[0] = x1_pixel[0] - 10;  // arbitrary distance
-	p2_pix[1] = x2_pixel[1]; // hold constant
+	// define p2: move along other pixel axis from x1_pix
+	p2_pix[0] = x1_pix[0] - 10;  // arbitrary distance
+	p2_pix[1] = x1_pix[1]; // hold constant
 	
 	astTran2(wcs_frames,                   // mapping
 			 1,                            // number of points to be transformed
-			 &p2_pixel[0], &p2_pixel[1],   // untransformed points (in)
+			 &p2_pix[0], &p2_pix[1],       // untransformed points (in)
 			 PIXEL2WORLD,                  // non-zero == forward transform
 			 &p2_world[0], &p2_world[1]);  // transformed points (out)
 	
-	// find x2 as an offset from x1 to p2
+	// find x2_world as an offset from x1 to p2
 	astOffset(wcs_frames, x1_world, p2_world, half_side_length, x2_world);
 	
+	astTran2(wcs_frames,                   // mapping
+			 1,                            // number of points to be transformed
+			 &x2_world[0], &x2_world[1],   // untransformed points (in)
+			 WORLD2PIXEL,                  // non-zero == forward transform
+			 &x2_pix[0], &x2_pix[1]);      // transformed points (out)
+	
 	// determine dx, dy - number of pixels corresponding to the length of the cutout on each dimension
-	dx = (p0_pixel[0] - x2_pixel[0]) * 2.;
-	dy = (p0_pixel[1] - x2_pixel[1]) * 2.;
-	dx = sign(dx) * ceil(abs(dx)); // use ceil so that user specified length is the minimum
-	dx = sign(dy) * ceil(abs(dy)); // 
+	dx = (p0_pix[0] - x2_pix[0]) * 2.;
+	dy = (p0_pix[1] - x2_pix[1]) * 2.;
+	dx = SIGN(dx) * ceil(abs(dx)); // use ceil so that user specified length is the minimum
+	dy = SIGN(dy) * ceil(abs(dy)); // 
 	
 	// corner 1
-	corners_pix_x[0] = p0_pixel[0] - dx/2;
-	corners_pix_y[0] = p0_pixel[1] - dy/2;
+	corners_pix_x[0] = p0_pix[0] - dx/2;
+	corners_pix_y[0] = p0_pix[1] - dy/2;
 	
 	// corner 2
 	corners_pix_x[1] = corners_pix_x[0];
@@ -178,9 +186,9 @@ pgast_cutout(PG_FUNCTION_ARGS) // (fits_header text, ra double, dec double, side
 	// convert all corner points to world
 	astTran2(wcs_frames,
 			 4,
-			 &corners_pix_x, &corners_pix_y,
+			 corners_pix_x, corners_pix_y,
 			 PIXEL2WORLD,
-			 &corners_world_ra, &corners_world_dec);
+			 corners_world_ra, corners_world_dec);
 	
 	// Allocate space for PostgreSQL polygon.
 	//
