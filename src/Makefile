@@ -2,7 +2,7 @@
 EXTENSION = pgast
 
 # random files to install into $PREFIX/share/$MODULEDIR
-DATA = pgast--1.0.0.sql     # script files to install
+DATA = pgast--1.1.0.sql     # script files to install
 
 PGFILEDESC = "pgast - Starlink AST library extension for PostgreSQL"
 
