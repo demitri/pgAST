@@ -45,7 +45,7 @@ AstFitsChan* cstring2fitsChan(const char *header)
 #pragma GCC diagnostic pop
 	astPutCards( fitsChan, header ); // add all cards at once
 
-	ereport(DEBUG1,  (errmsg("header:\n%s", header)));
+	//ereport(DEBUG1,  (errmsg("header:\n%s", header)));
 	
 	if (!astOK) {
 		printf("pgAST error (fitsheader2polygon): An error occurred when reading the FITS header (status=%d).\n", astStatus);
