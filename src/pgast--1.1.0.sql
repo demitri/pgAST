@@ -48,6 +48,6 @@ CREATE OR REPLACE FUNCTION pgast_distance(point, point) RETURNS double precision
 AS 'MODULE_PATHNAME', 'pgast_distance_points'
 LANGUAGE C IMMUTABLE STRICT;
 
-CREATE OR REPLACE FUNCTION pgast_cutout(fits_header text, ra double precision, declination double precision, side_length double precision) RETURNS POLYGON
+CREATE OR REPLACE FUNCTION pgast_cutout(fits_header text, ra double precision, declination double precision, side_length_arcsec double precision) RETURNS POLYGON
 AS 'MODULE_PATHNAME', 'pgast_cutout'
 LANGUAGE C IMMUTABLE STRICT;
