@@ -131,9 +131,9 @@ pgast_cutout(PG_FUNCTION_ARGS) // (fits_header text, ra double, dec double, side
 	p1_pix[0] = p0_pix[0];
 	p1_pix[1] = 0; // use -1 instead of zero in case p0 is at edge of image
 	
-	ereport(DEBUG1, (errmsg("p0_world: (%f, %f)", p0_world[0], p0_world[1])));
-	ereport(DEBUG1, (errmsg("p0_pix  : (%f, %f)", p0_pix[0], p0_pix[1])));
-	ereport(DEBUG1, (errmsg("p1_pix  : (%f, %f)", p1_pix[0], p1_pix[1])));
+	//ereport(DEBUG1, (errmsg("p0_world: (%f, %f)", p0_world[0], p0_world[1])));
+	//ereport(DEBUG1, (errmsg("p0_pix  : (%f, %f)", p0_pix[0], p0_pix[1])));
+	//ereport(DEBUG1, (errmsg("p1_pix  : (%f, %f)", p1_pix[0], p1_pix[1])));
 	
 	// calculate p1_world
 	astTran2(wcs_frames,                   // mapping
@@ -144,12 +144,12 @@ pgast_cutout(PG_FUNCTION_ARGS) // (fits_header text, ra double, dec double, side
 	
 	astNorm(wcs_frames, p1_world);
 	
-	ereport(DEBUG1, (errmsg("p1_world: (%f, %f) rad, (%f, %f) deg", p1_world[0], p1_world[1], rad2deg(p1_world[0]), rad2deg(p1_world[1]))));
+	//ereport(DEBUG1, (errmsg("p1_world: (%f, %f) rad, (%f, %f) deg", p1_world[0], p1_world[1], rad2deg(p1_world[0]), rad2deg(p1_world[1]))));
 
 	// find x1 as an offset from p0 towards p1
 	astOffset(wcs_frames, p0_world, p1_world, half_side_length, x1_world);
 
-	ereport(DEBUG1, (errmsg("x1_world: (%f, %f) rad, (%f, %f) deg", x1_world[0], x1_world[1], rad2deg(x1_world[0]), rad2deg(x1_world[1]))));
+	//ereport(DEBUG1, (errmsg("x1_world: (%f, %f) rad, (%f, %f) deg", x1_world[0], x1_world[1], rad2deg(x1_world[0]), rad2deg(x1_world[1]))));
 
 	// get pixel location x1_world -> x1_pix
 	astTran2(wcs_frames,                   // mapping
@@ -158,13 +158,13 @@ pgast_cutout(PG_FUNCTION_ARGS) // (fits_header text, ra double, dec double, side
 			 WORLD2PIXEL,                  // non-zero == forward transform
 			 &x1_pix[0], &x1_pix[1]);      // transformed points (out)
 
-	ereport(DEBUG1, (errmsg("x1_pix  : (%f, %f)", x1_pix[0], x1_pix[1])));
+	//ereport(DEBUG1, (errmsg("x1_pix  : (%f, %f)", x1_pix[0], x1_pix[1])));
 
 	// define p2: move along other pixel axis from x1_pix
 	p2_pix[0] = x1_pix[0] - 10;  // arbitrary distance
 	p2_pix[1] = x1_pix[1]; // hold constant
 
-	ereport(DEBUG1, (errmsg("p2_pix  : (%f, %f)", p2_pix[0], p2_pix[1])));
+	//ereport(DEBUG1, (errmsg("p2_pix  : (%f, %f)", p2_pix[0], p2_pix[1])));
 	
 	astTran2(wcs_frames,                   // mapping
 			 1,                            // number of points to be transformed
@@ -174,12 +174,12 @@ pgast_cutout(PG_FUNCTION_ARGS) // (fits_header text, ra double, dec double, side
 
 	astNorm(wcs_frames, p2_world);
 
-	ereport(DEBUG1, (errmsg("p2_world: (%f, %f) rad, (%f, %f) deg", p2_world[0], p2_world[1], rad2deg(p2_world[0]), rad2deg(p2_world[1]))));
+	//ereport(DEBUG1, (errmsg("p2_world: (%f, %f) rad, (%f, %f) deg", p2_world[0], p2_world[1], rad2deg(p2_world[0]), rad2deg(p2_world[1]))));
 		
 	// find x2_world as an offset from x1 to p2
 	astOffset(wcs_frames, x1_world, p2_world, -half_side_length, x2_world); // note the negative distance
 	
-	ereport(DEBUG1, (errmsg("x2_world: (%f, %f) rad, (%f, %f) deg", x2_world[0], x2_world[1], rad2deg(x2_world[0]), rad2deg(x2_world[1]))));
+	//ereport(DEBUG1, (errmsg("x2_world: (%f, %f) rad, (%f, %f) deg", x2_world[0], x2_world[1], rad2deg(x2_world[0]), rad2deg(x2_world[1]))));
 	
 	astTran2(wcs_frames,                   // mapping
 			 1,                            // number of points to be transformed
@@ -187,13 +187,13 @@ pgast_cutout(PG_FUNCTION_ARGS) // (fits_header text, ra double, dec double, side
 			 WORLD2PIXEL,                  // non-zero == forward transform
 			 &x2_pix[0], &x2_pix[1]);      // transformed points (out)
 
-	ereport(DEBUG1, (errmsg("x2_pix  : (%f, %f)", x2_pix[0], x2_pix[1])));
+	//ereport(DEBUG1, (errmsg("x2_pix  : (%f, %f)", x2_pix[0], x2_pix[1])));
 	
 	// determine dx, dy - number of pixels corresponding to the length of the cutout on each dimension
 	dx_f = p0_pix[0] - x2_pix[0];
 	dy_f = p0_pix[1] - x2_pix[1];
 
-	ereport(DEBUG1, (errmsg("dx_f,  dy_f  : (%f, %f)", dx_f, dy_f)));
+	//ereport(DEBUG1, (errmsg("dx_f,  dy_f  : (%f, %f)", dx_f, dy_f)));
 
 	// Use ceil so that user specified length is the minimum,
 	// i.e. grow box by up to 1 pixel.
@@ -201,7 +201,7 @@ pgast_cutout(PG_FUNCTION_ARGS) // (fits_header text, ra double, dec double, side
 	dx = SIGN(dx_f) * ceil(fabs(dx_f)) * 2.;
 	dy = SIGN(dy_f) * ceil(fabs(dy_f)) * 2.; 
 	
-	ereport(DEBUG1, (errmsg("dx,  dy  : (%d, %d)", dx, dy)));
+	//ereport(DEBUG1, (errmsg("dx,  dy  : (%d, %d)", dx, dy)));
 
 	// corner 1 - offset from center position
 	corners_pix_x[0] = p0_pix[0] - dx/2;
@@ -219,12 +219,12 @@ pgast_cutout(PG_FUNCTION_ARGS) // (fits_header text, ra double, dec double, side
 	corners_pix_x[3] = corners_pix_x[0] + dx;
 	corners_pix_y[3] = corners_pix_y[0];
 	
-	ereport(DEBUG1, (errmsg("corners pix: (%d, %d), (%d, %d), (%d, %d), (%d, %d)",
-		(int)corners_pix_x[0], (int)corners_pix_y[0],
-		(int)corners_pix_x[1], (int)corners_pix_y[1],
-		(int)corners_pix_x[2], (int)corners_pix_y[2],
-		(int)corners_pix_x[3], (int)corners_pix_y[3]
-			)));
+// 	ereport(DEBUG1, (errmsg("corners pix: (%d, %d), (%d, %d), (%d, %d), (%d, %d)",
+// 		(int)corners_pix_x[0], (int)corners_pix_y[0],
+// 		(int)corners_pix_x[1], (int)corners_pix_y[1],
+// 		(int)corners_pix_x[2], (int)corners_pix_y[2],
+// 		(int)corners_pix_x[3], (int)corners_pix_y[3]
+// 			)));
 
 	// convert all corner points to world
 	astTran2(wcs_frames,
@@ -244,8 +244,8 @@ pgast_cutout(PG_FUNCTION_ARGS) // (fits_header text, ra double, dec double, side
 		corners_world_dec[i] = point[1];
 	}
 	
-	ereport(DEBUG1, (errmsg("corner1 = (%f, %f) rad, (%f, %f) deg", corners_world_ra[0], corners_world_dec[0],
-																	rad2deg(corners_world_ra[0]), rad2deg(corners_world_dec[0]))));
+	//ereport(DEBUG1, (errmsg("corner1 = (%f, %f) rad, (%f, %f) deg", corners_world_ra[0], corners_world_dec[0],
+	//																rad2deg(corners_world_ra[0]), rad2deg(corners_world_dec[0]))));
 	
 	// Allocate space for PostgreSQL polygon.
 	//
