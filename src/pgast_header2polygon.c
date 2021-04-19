@@ -12,9 +12,6 @@
 #define PIXEL2WORLD 1
 #define WORLD2PIXEL 0
 
-void normalize_ast_array(AstFrame *frame, double *points, int npairs); // npairs = number of coordinate pairs
-
-
 AstPolygon* fitsheader2polygon(const char *header, int *npoints) //, double *polygon, int *npoints)
 {
 	//int npoints;
@@ -68,7 +65,7 @@ AstPolygon* fitsheader2polygon(const char *header, int *npoints) //, double *pol
 
 //	ereport(DEBUG1, (errmsg("fitsheader2polygon: after astPutCards")));
 	
-	ereport(DEBUG1,  (errmsg("header:\n%s", header)));
+	//ereport(DEBUG1,  (errmsg("header:\n%s", header)));
 	
 	if (!astOK) {
 		printf("pgAST error (fitsheader2polygon): An error occurred when reading the FITS header (status=%d).\n", astStatus);
@@ -300,11 +297,12 @@ AstPolygon* fitsheader2polygon(const char *header, int *npoints) //, double *pol
 	// Create a new polygon with downsized points.
 	// This removes points where the polygon is close
 	// to a Cartesean straight line up to the error specified.
+	// "reduced_flat_polygon" is a polygon in a frame with axes in degrees,
+	// but is not a sky frame.
 	//
 	{
 		double max_downsize_err = 4.848e-6; // 1 arcsec in radians
 		reduced_flat_polygon = astDownsize(flat_polygon, max_downsize_err, 0); // -> AstPolygon
-		
 //		ereport(DEBUG1, (errmsg("fitsheader2polygon: after astDownsize (reduced_flat_polygon=%p)", reduced_flat_polygon)));
 
 		// This is not the final polygon; we want it in the sky frame.
@@ -352,6 +350,13 @@ AstPolygon* fitsheader2polygon(const char *header, int *npoints) //, double *pol
 					   maxcoord,	// number of axes of region (2D image = 2)
 					   &num_points,
 					   points);		// returned array
+
+	//ereport(DEBUG1, (errmsg("astNorm before: %f %f", points[0], points[1])));
+
+	// normalize the points
+	normalize_ast_array(sky_frame, points, num_points);
+
+	//ereport(DEBUG1, (errmsg("astNorm after : %f %f", points[0], points[1])));
 
 //	ereport(DEBUG1, (errmsg("fitsheader2polygon: after astGetRegionPoints (4)")));
 
@@ -416,15 +421,13 @@ AstPolygon* fitsheader2polygon(const char *header, int *npoints) //, double *pol
 //	ereport(DEBUG1, (errmsg("fitsheader2polygon: before astExport")));
 
 	astExport(sky_frame_polygon);
-
+	
 	astEnd;
 
 //	ereport(DEBUG1, (errmsg("fitsheader2polygon: before return")));
 
 	return sky_frame_polygon;
 }
-
-// The code below is untested!! And currently not used.
 
 /*
  The function astNorm is used to normalize ra,dec points on [0,360) and [-90,90],
@@ -452,3 +455,4 @@ void normalize_ast_array(AstFrame *frame, double *points, int npairs) // npairs 
 		points[npairs+i] = coordinate[1];
 	}
 }
+
