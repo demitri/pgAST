@@ -9,6 +9,7 @@
 #include <tgmath.h> // type generic version, see: https://www.cplusplus.com/reference/ctgmath/
 #include "pgast.h"
 #include "pgast_util.h"
+#include "pgast_header2polygon.h"
 
 #define WORLD2PIXEL 0
 #define PIXEL2WORLD 1
@@ -101,7 +102,7 @@ pgast_cutout(PG_FUNCTION_ARGS) // (fits_header text, ra double, dec double, side
 	wcs_frames = astRead(fitsChan);
 	
 	if (wcs_frames == AST__NULL) {
-		ereport(ERROR, (errmsg("pgAST error (pgast_cutout): No valid WCS could be read from the provided header.")));
+		ereport(ERROR, (errmsg("pgAST error (pgast_cutout): No valid WCS could be read from the provided header (AST status=%d).", astStatus)));
 		astEnd;
 		PG_RETURN_NULL();
 	}
@@ -111,7 +112,7 @@ pgast_cutout(PG_FUNCTION_ARGS) // (fits_header text, ra double, dec double, side
 	//pixel_frame = astGetFrame(wcs_frames, AST__BASE); // not needed, here if it is later
 	sky_frame = astGetFrame(wcs_frames, AST__CURRENT);
 	if (sky_frame == AST__NULL || astIsASkyFrame(sky_frame) == 0) { // returns 1 if yes, 0 if no
-		ereport(ERROR, (errmsg("pgAST error (fitsheader2polygon): The provided WCS does not contain a sky frame.")));
+		ereport(ERROR, (errmsg("pgAST error (pgast_cutout): The provided WCS does not contain a sky frame.")));
 		astEnd;
 		PG_RETURN_NULL();
 	}
@@ -124,6 +125,20 @@ pgast_cutout(PG_FUNCTION_ARGS) // (fits_header text, ra double, dec double, side
 			 WORLD2PIXEL,                  // non-zero == forward transform
 			 &p0_pix[0], &p0_pix[1]);      // transformed points (out)
 
+	if (p0_pix[0] == DBL_MAX || p0_pix[1] == DBL_MAX || p0_pix[0] == -DBL_MAX || p0_pix[1] == -DBL_MAX) {
+		// check if the point is in the provided region
+		int n_points;
+		AstPolygon *polygon = fitsheader2polygon(fits_header, &n_points);
+		int in_region = astPointInRegion(polygon, p0_world);
+		if (in_region == 0) {
+			ereport(WARNING, (errmsg("pgAST: Provided point is outside provided polygon.")));
+		} else {
+			ereport(WARNING, (errmsg("pgAST: Infinity occurred in translating from world to pixel coords.")));
+		}
+		astEnd;
+		PG_RETURN_NULL();
+	}
+
 	p0_pix[0] = round(p0_pix[0]); // land on one specific pixel, not a partial pixel
 	p0_pix[1] = round(p0_pix[1]);
 
@@ -131,9 +146,10 @@ pgast_cutout(PG_FUNCTION_ARGS) // (fits_header text, ra double, dec double, side
 	p1_pix[0] = p0_pix[0];
 	p1_pix[1] = 0; // use -1 instead of zero in case p0 is at edge of image
 	
-	//ereport(DEBUG1, (errmsg("p0_world: (%f, %f)", p0_world[0], p0_world[1])));
-	//ereport(DEBUG1, (errmsg("p0_pix  : (%f, %f)", p0_pix[0], p0_pix[1])));
-	//ereport(DEBUG1, (errmsg("p1_pix  : (%f, %f)", p1_pix[0], p1_pix[1])));
+	ereport(DEBUG1, (errmsg("DBL_MIN: %f", -DBL_MAX)));
+	ereport(DEBUG1, (errmsg("p0_world: (%f, %f)", p0_world[0], p0_world[1])));
+	ereport(DEBUG1, (errmsg("p0_pix  : (%f, %f)", p0_pix[0], p0_pix[1])));
+	ereport(DEBUG1, (errmsg("p1_pix  : (%f, %f)", p1_pix[0], p1_pix[1])));
 	
 	// calculate p1_world
 	astTran2(wcs_frames,                   // mapping

@@ -406,7 +406,7 @@ AstPolygon* fitsheader2polygon(const char *header, int *npoints) //, double *pol
 				 1,								// non-zero == forward transform
 				 &point_out[1], &point_out[0]);	// transformed points (out)
 		
-		ereport(DEBUG1, (errmsg("point in: (%f, %f), point out: (%f, %f)", point_in[0], point_in[1], point_out[0], point_out[1])));
+		ereport(DEBUG1, (errmsg("pgAST error (fitsheader2polygon): point in: (%f, %f), point out: (%f, %f)", point_in[0], point_in[1], point_out[0], point_out[1])));
 
 		if (astPointInRegion(sky_frame_polygon, point_out)) {
 			astNegate(sky_frame_polygon);
