@@ -288,11 +288,11 @@ AstPolygon* fitsheader2polygon(const char *header, int *npoints) //, double *pol
 							  "");			// options
 #pragma GCC diagnostic pop
 
-//	ereport(DEBUG1, (errmsg("fitsheader2polygon: after create astPolygon (flat_polygon=%p)", flat_polygon)));
+	//	ereport(DEBUG1, (errmsg("fitsheader2polygon: after create astPolygon (flat_polygon=%p)", flat_polygon)));
 
 	pfree(mesh_points);
 
-//	ereport(DEBUG1, (errmsg("fitsheader2polygon: after pfree(mesh_points)")));
+	//	ereport(DEBUG1, (errmsg("fitsheader2polygon: after pfree(mesh_points)")));
 
 	// Create a new polygon with downsized points.
 	// This removes points where the polygon is close
@@ -303,7 +303,7 @@ AstPolygon* fitsheader2polygon(const char *header, int *npoints) //, double *pol
 	{
 		double max_downsize_err = 4.848e-6; // 1 arcsec in radians
 		reduced_flat_polygon = astDownsize(flat_polygon, max_downsize_err, 0); // -> AstPolygon
-//		ereport(DEBUG1, (errmsg("fitsheader2polygon: after astDownsize (reduced_flat_polygon=%p)", reduced_flat_polygon)));
+		// ereport(DEBUG1, (errmsg("fitsheader2polygon: after astDownsize (reduced_flat_polygon=%p)", reduced_flat_polygon)));
 
 		// This is not the final polygon; we want it in the sky frame.
 	}
@@ -329,7 +329,7 @@ AstPolygon* fitsheader2polygon(const char *header, int *npoints) //, double *pol
 					   &num_points,				// number of points needed
 					   NULL);					// NULL = just return number of points needed
 					   
-//	ereport(DEBUG1, (errmsg("fitsheader2polygon: after astGetRegionPoints (3)")));
+	//	ereport(DEBUG1, (errmsg("fitsheader2polygon: after astGetRegionPoints (3)")));
 
 	// values to return
 	*npoints = num_points;
@@ -358,7 +358,7 @@ AstPolygon* fitsheader2polygon(const char *header, int *npoints) //, double *pol
 
 	//ereport(DEBUG1, (errmsg("astNorm after : %f %f", points[0], points[1])));
 
-//	ereport(DEBUG1, (errmsg("fitsheader2polygon: after astGetRegionPoints (4)")));
+	//	ereport(DEBUG1, (errmsg("fitsheader2polygon: after astGetRegionPoints (4)")));
 
 	// print all points (for debugging)
 	//for (int i=0; i < num_points; i++) {
@@ -380,12 +380,13 @@ AstPolygon* fitsheader2polygon(const char *header, int *npoints) //, double *pol
 
 //	ereport(DEBUG1, (errmsg("fitsheader2polygon: after sky_frame_polygon created (sky_frame_polygon=%p)", sky_frame_polygon)));
 
-	pfree(points);
+	//pfree(points);
 
 //	ereport(DEBUG1, (errmsg("fitsheader2polygon: after pfree(points)")));
 
 	if (!astGetI(sky_frame_polygon, "Bounded")) {
 		astNegate(sky_frame_polygon);
+		ereport(DEBUG1, (errmsg("pgAST fitsheader2polygon: polygon was negated ('Bounded' was false).")));
 	}
 	
 	// The order in which the vertices are supplied to the polygon constructor above
@@ -404,12 +405,49 @@ AstPolygon* fitsheader2polygon(const char *header, int *npoints) //, double *pol
 				 1,								// number of points to be transformed
 				 &point_in[0], &point_out[1],	// untransformed points (in)
 				 1,								// non-zero == forward transform
-				 &point_out[1], &point_out[0]);	// transformed points (out)
+				 &point_out[0], &point_out[1]);	// transformed points (out)
 		
-		ereport(DEBUG1, (errmsg("pgAST error (fitsheader2polygon): point in: (%f, %f), point out: (%f, %f)", point_in[0], point_in[1], point_out[0], point_out[1])));
+		ereport(DEBUG1, (errmsg("pgAST (fitsheader2polygon): point in: (%f, %f), point out: (%f, %f)", point_in[0], point_in[1], point_out[0], point_out[1])));
 
 		if (astPointInRegion(sky_frame_polygon, point_out)) {
-			astNegate(sky_frame_polygon);
+			//astNegate(sky_frame_polygon); // normally the right thing to do, but not here (see below).
+			ereport(DEBUG1, (errmsg("pgAST fitsheader2polygon: polygon was negated (test point not in region).")));
+			{
+				// The center point of the FITS image is not contained by the resulting polygon.
+				// This means the resulting polygon is inverted (and contains most of the universe).
+				// Normally one can just call "astNegate", but this doesn't modify the points,
+				// it only sets a flag. If any method were to retrieve the points, they will still be in the original order.
+				// Below we allocate a new double* array, reverse the order of the points, and create a new polygon.
+				// The result is a region that covers the FITS file, not one that is the inverse of it.
+			
+				// invert polygon points
+				double *inverted_points = (double*)palloc(maxcoord * num_points * sizeof(double));
+
+				// structure of points array is: [ra1, ra2, ..., ran, dec1, dec2, ... decn]
+
+				for (int i=0; i < num_points; i++) {
+					inverted_points[i] = points[num_points-i-1];
+					inverted_points[num_points+i] = points[num_points*maxcoord - i - 1];
+				}
+				
+				sky_frame_polygon = astAnnul(sky_frame_polygon); // not strictly necessary
+
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wformat-zero-length"
+#pragma GCC diagnostic ignored "-Wformat-security"
+				sky_frame_polygon = astPolygon(sky_frame,
+				                               num_points,
+				                               num_points,
+				                               inverted_points,
+				                               AST__NULL,
+				                               "");
+#pragma GCC diagnostic pop
+
+				
+				ereport(DEBUG1, (errmsg("pgAST (fitsheader2polygon): point in region after inv: %d", astPointInRegion(sky_frame_polygon, point_out))));
+				
+				pfree(inverted_points);
+			}
 		}
 	}
 		
@@ -423,6 +461,8 @@ AstPolygon* fitsheader2polygon(const char *header, int *npoints) //, double *pol
 	astExport(sky_frame_polygon);
 	
 	astEnd;
+
+	pfree(points);
 
 //	ereport(DEBUG1, (errmsg("fitsheader2polygon: before return")));
 
