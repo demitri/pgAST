@@ -43,7 +43,7 @@ pgast_bounding_polygon(PG_FUNCTION_ARGS) // (text fits_header_as_string)
 
 	// --------------------------------------------------------------------------
 	// Read points from polygon.
-	// -------------------------
+	// -----------------------
 	// Need to run twice - first time to know how many points will
 	// be returned (to allocate the points array), then to get the points.
 	//
@@ -66,11 +66,6 @@ pgast_bounding_polygon(PG_FUNCTION_ARGS) // (text fits_header_as_string)
 	
 	// returned array is [x1, x2, x3, ..., xn, y1, y2, y3, ... yn] in RADIANS
 	// --------------------------------------------------------------------------
-	
-	// The order of the points returned by astGetRegionPoints is not guaranteed;
-	// we need to check that the points describe the polygon of the FITS file
-	// or instead the inverse/negated polygon (which would contain most of the universe).
-	
 	
 	//ereport(DEBUG1, (errmsg("points[0] = %.5f, %.5f", points[0], points[1])));
 
