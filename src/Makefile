@@ -47,7 +47,7 @@ PG_CPPFLAGS += -I$(AST)/include -std=c99 -Wall -Wno-declaration-after-statement
 # ----------
 # Use this for a project of type "MODULE_big".
 # This line is added to the cc linker.
-SHLIB_LINK = $(AST_LIB)/libast.a $(AST_LIB)/libast_grf3d.a $(AST_LIB)/libast_err.a  $(AST_LIB)/libast_grf_2.0.a $(AST_LIB)/libast_grf_3.2.a $(AST_LIB)/libast_grf_5.6.a $(AST_LIB)/libast_pal.a
+SHLIB_LINK = $(AST_LIB)/libast.a $(AST_LIB)/libast_grf3d.a $(AST_LIB)/libast_err.a  $(AST_LIB)/libast_grf_2.0.a $(AST_LIB)/libast_grf_3.2.a $(AST_LIB)/libast_grf_5.6.a $(AST_LIB)/libast_pal.a $(AST_LIB)/libast_cminpack.a
 #SHLIB_LINK += $(filter -last_pass2 -last, $(LIBS))
 
 # PG_LIBS
