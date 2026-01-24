@@ -5,8 +5,8 @@
 //  Copyright © 2021 Demitri Muna. All rights reserved.
 //
 
-//#include <math.h>
-#include <tgmath.h> // type generic version, see: https://www.cplusplus.com/reference/ctgmath/
+// Note: <math.h> is included via pgast.h
+// Do NOT include <tgmath.h> - its macros conflict with PostgreSQL's internal function names (e.g., dsqrt)
 #include "pgast.h"
 #include "pgast_util.h"
 #include "pgast_header2polygon.h"
