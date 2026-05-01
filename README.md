@@ -188,7 +188,7 @@ or to see messages in just the client session:
 SET client_min_messages TO 'DEBUG1';
 ```
 
-## Useful Links
+## Useful Reference
 
-* <http://apprize.info/php/postgresql_2/10.html>
+* PostgreSQL Server Programming, Second Edition (2015), Chapter 9. Writing Advanced Functions in C
 
