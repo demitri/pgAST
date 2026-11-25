@@ -40,28 +40,31 @@ void pgPolygon2astPoints(POLYGON *polygon, double *points)
  ignores Negated and orientation (SUN/211). When the Region is the far side
  of its boundary (a footprint larger than half the sky, or a polygon given
  in the order that describes the rest of the sky), that disc does not
- enclose the Region, and no honest bounding circle under 90 degrees exists:
- raise an error. Test: everything outside the disc is on one side of the
- boundary, so one point 90 degrees from the disc centre (outside the disc,
- and far from the antipode where AST's point test is unreliable) decides it.
+ enclose the Region: raise an error. Test: everything outside the disc is on one side of the
+ boundary, so one point outside the disc decides it. The point is taken
+ halfway between the disc's edge and the antipode of its centre, i.e. at
+ (radius + 180 deg) / 2 from the centre: 90 deg away for a small disc, far
+ from the antipode where AST's point test is unreliable. The disc is AST's
+ approximation, not necessarily the smallest one, and depends on the
+ vertex order; any radius under 180 deg is accepted.
  */
 void pgast_region_bounding_disc(AstRegion *region, double centre[2], double *radius, const char *caller)
 {
 	astGetRegionDisc(region, centre, radius);
 	if (!astOK || *radius == AST__BAD)
 		pgast_ast_error("pgAST error (%s): astGetRegionDisc failed.", caller);
-	if (*radius >= M_PI / 2)
-		pgast_ast_error("pgAST error (%s): bounding circles of 90 degrees or more are not supported.", caller);
+	if (*radius >= M_PI - 1e-6)
+		pgast_ast_error("pgAST error (%s): the region's bounding disc covers the whole sky.", caller);
 
 	double probe[2], probe_x_out, probe_y_out;
-	astOffset2(region, centre, 0.0, M_PI / 2, probe);
+	astOffset2(region, centre, 0.0, (*radius + M_PI) / 2, probe);
 	astTran2(region, 1, &probe[0], &probe[1], 1, &probe_x_out, &probe_y_out);
 	if (!astOK)
 		pgast_ast_error("pgAST error (%s): AST failed checking the bounding circle.", caller);
 	if (probe_x_out != AST__BAD)
-		pgast_ast_error("pgAST error (%s): the region is the far side of its boundary (larger than half the sky, "
-						"or a polygon whose vertices describe the rest of the sky); it has no bounding circle "
-						"under 90 degrees.", caller);
+		pgast_ast_error("pgAST error (%s): the region is the far side of its boundary (e.g. larger than half "
+						"the sky, or a polygon whose vertices describe the rest of the sky); AST gives no bounding "
+						"circle for it.", caller);
 }
 
 /**

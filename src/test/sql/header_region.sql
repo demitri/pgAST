@@ -102,6 +102,17 @@ SELECT pgast_point_in_polygon(0.0,   0.0, test_header_big()) AS centre,
        pgast_point_in_polygon(0.0,   0.0, pgast_bounding_polygon(test_header_big())) AS polygon_centre,
        pgast_point_in_polygon(180.0, 0.0, pgast_bounding_polygon(test_header_big())) AS polygon_in_gap;
 
+-- A wide polygon's bounding circle does not depend on which vertex comes
+-- first: both cyclic orders of this triangle (same orientation, same region)
+-- give a circle, and each circle contains all three vertices.
+SELECT o.label,
+       bool_and(pgast_distance(center(c.circle), v.p) <= radius(c.circle) + 1e-9) AS contains_vertices
+FROM (VALUES ('order_a', polygon '((257,13),(175,5),(333,7))'),
+             ('order_b', polygon '((175,5),(333,7),(257,13))')) AS o(label, poly)
+CROSS JOIN LATERAL (SELECT pgast_bounding_circle(o.poly) AS circle) c
+CROSS JOIN (VALUES (point '(257,13)'), (point '(175,5)'), (point '(333,7)')) AS v(p)
+GROUP BY o.label ORDER BY o.label;
+
 -- A header in another celestial system: results are still ICRS. The image
 -- is centred on Galactic (l, b) = (0, 0), which is ICRS (RA, Dec) =
 -- (266.40499, -28.93617) (IAU definition of the Galactic system).

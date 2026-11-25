@@ -123,6 +123,22 @@ SELECT pgast_point_in_polygon(0.0,   0.0, test_header_big()) AS centre,
  t      | f      | t              | f
 (1 row)
 
+-- A wide polygon's bounding circle does not depend on which vertex comes
+-- first: both cyclic orders of this triangle (same orientation, same region)
+-- give a circle, and each circle contains all three vertices.
+SELECT o.label,
+       bool_and(pgast_distance(center(c.circle), v.p) <= radius(c.circle) + 1e-9) AS contains_vertices
+FROM (VALUES ('order_a', polygon '((257,13),(175,5),(333,7))'),
+             ('order_b', polygon '((175,5),(333,7),(257,13))')) AS o(label, poly)
+CROSS JOIN LATERAL (SELECT pgast_bounding_circle(o.poly) AS circle) c
+CROSS JOIN (VALUES (point '(257,13)'), (point '(175,5)'), (point '(333,7)')) AS v(p)
+GROUP BY o.label ORDER BY o.label;
+  label  | contains_vertices 
+---------+-------------------
+ order_a | t
+ order_b | t
+(2 rows)
+
 -- A header in another celestial system: results are still ICRS. The image
 -- is centred on Galactic (l, b) = (0, 0), which is ICRS (RA, Dec) =
 -- (266.40499, -28.93617) (IAU definition of the Galactic system).
@@ -225,9 +241,9 @@ ERROR:  pgAST error (pgast_cutout): a corner of the box cannot be computed; the 
 -- order that describes the rest of the sky. (AST's disc would describe the
 -- 60-deg gap and the 0.014-deg box respectively.)
 SELECT pgast_bounding_circle(test_header_big()) IS NULL AS big_footprint_circle;
-ERROR:  pgAST error (pgast_bounding_circle_header): the region is the far side of its boundary (larger than half the sky, or a polygon whose vertices describe the rest of the sky); it has no bounding circle under 90 degrees.
+ERROR:  pgAST error (pgast_bounding_circle_header): the region is the far side of its boundary (e.g. larger than half the sky, or a polygon whose vertices describe the rest of the sky); AST gives no bounding circle for it.
 SELECT pgast_bounding_circle(polygon '((149.99,1.99),(150.01,1.99),(150.01,2.01),(149.99,2.01))') IS NULL AS rest_of_sky_circle;
-ERROR:  pgAST error (pgast_bounding_circle_polygon): the region is the far side of its boundary (larger than half the sky, or a polygon whose vertices describe the rest of the sky); it has no bounding circle under 90 degrees.
+ERROR:  pgAST error (pgast_bounding_circle_polygon): the region is the far side of its boundary (e.g. larger than half the sky, or a polygon whose vertices describe the rest of the sky); AST gives no bounding circle for it.
 SELECT pgast_point_in_polygon(150.0, 2.0, test_header(150, 2, -0.001)) AS centre_after_error;
  centre_after_error 
 --------------------

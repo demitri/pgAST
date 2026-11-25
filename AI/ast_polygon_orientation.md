@@ -98,5 +98,7 @@ Tests use a point 90 degrees away as their far-away point.
 boundary that disc does not enclose it: AST gave the 60-degree gap's disc
 for the larger-than-half-sky test footprint, and a 0.014-degree disc for a
 box in rest-of-sky order. `pgast_region_bounding_disc` (`pgast_util.c`)
-checks one point 90 degrees from the disc centre and raises an error when
-it is inside the region, and for discs of 90 degrees or more.
+checks one point outside the disc, (radius + 180 deg) / 2 from its centre,
+and raises an error when it is inside the region. The disc is AST's
+approximation: for a wide triangle it was 92.9 deg with one vertex first
+and 77.6 deg with another (same region); both are accepted.

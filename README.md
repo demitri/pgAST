@@ -68,9 +68,9 @@ pgast_cutout(text fits_header_as_string, float8 ra, float8 dec, float8 side_leng
 
 ### `pgast_bounding_circle`
 
-##### Returns the minimum bounding circle of a 2D image or a polygon.
+##### Returns a bounding circle of a 2D image or a polygon.
 
-This function has two signatures; it accepts a `text` value of a FITS header or a PostgreSQL Polygon object. An error is raised for a region that has no bounding circle smaller than a hemisphere: a footprint larger than half the sky, a polygon whose vertex order describes the rest of the sky, or any region whose bounding circle would be 90 degrees or more (e.g. a strip more than 180 degrees long).
+This function has two signatures; it accepts a `text` value of a FITS header or a PostgreSQL Polygon object. The circle is the AST library's approximation: it encloses the region but is not always the smallest such circle, and for wide polygons it can depend on which vertex is listed first. An error is raised for a region on the far side of its boundary, for which AST gives no enclosing circle: a footprint larger than half the sky, or a polygon whose vertex order describes the rest of the sky.
 
 ```sql
 pgast_bounding_circle(polygon)
