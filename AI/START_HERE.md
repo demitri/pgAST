@@ -68,17 +68,30 @@ static AST libraries; the 9.5.0 build produces the same set.
 - AST failures are raised with `pgast_ast_error(...)` (`src/pgast.h`), never a
   bare `ereport(ERROR, ...)`: AST's error status is global to the backend, and
   if an error leaves it set, every later AST call in that session silently
-  does nothing. The macro clears it. Call `astEnd` for the current AST
-  context first, because nothing after the error runs.
+  does nothing. The macro clears it.
+- AST contexts are counted: SQL functions start with `pgast_ast_enter()`,
+  helpers use `pgast_ast_begin()`, and everything ends with `pgast_ast_end()`
+  (or `pgast_ast_end_checked()` on a SQL function's success path, which raises
+  if any AST call failed). An error longjmps past the `astEnd` calls between
+  it and the SQL entry point; `pgast_ast_enter()` closes the contexts left
+  open that way at the next call. `scripts/run_tests.sh` refuses raw
+  `astBegin;`/`astEnd;` in `src/*.c`.
+- Everything is ICRS: code that reads a WCS sets `System=ICRS` on the
+  FrameSet right after `astRead`, so headers in other systems (Galactic,
+  FK4, ...) give ICRS positions.
 - Polygon orientation: see `AI/ast_polygon_orientation.md`. Any code that
   builds an AstPolygon from vertices it did not choose must decide the
   inside explicitly.
 
 ## Open work
 
-- GitHub issue #1: `pgast_icrs_polygon_overlaps_polygon`. A review is on the
-  issue. The open decision is the vertex-order convention for stored polygons
-  (see `AI/ast_polygon_orientation.md`).
+- GitHub issue #1: `pgast_icrs_polygon_overlaps_polygon`. Before it is
+  implemented, decide the vertex-order convention for stored polygons. Today
+  they follow AST's rule as given, which the README documents; the choice is
+  between keeping that, normalizing to the smaller region, or rejecting the
+  other order (see `AI/ast_polygon_orientation.md`). Related: AST accepts a
+  "polygon" with fewer than three distinct vertices without error, and
+  pgAST does not validate stored polygons.
 - Production hygiene (from `AI/archive/2025-codex-issue-summary.md`, not yet
   done): `fprintf`/`printf` in `pgast_pgast.c`, `pgast_util.c` and
   `pgast_header2polygon.c` write to the server's stdout/stderr on every call;

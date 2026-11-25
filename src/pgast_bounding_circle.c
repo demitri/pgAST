@@ -30,14 +30,14 @@ pgast_bounding_circle_header(PG_FUNCTION_ARGS) // (text fits_header)
 	double centre[2];
 	CIRCLE *circle = (CIRCLE*)palloc(sizeof(CIRCLE));
 	
-	astBegin;
+	pgast_ast_enter();
 
 	int npoints;
 	AstPolygon *sky_polygon = fitsheader2polygon(fits_header, &npoints);
 	if (sky_polygon == AST__NULL) {
 		// for example, incomplete FITS header or header does not contain WCS, image, etc.
 		ereport(DEBUG1, (errmsg("pgast_bounding_circle_header: bad sky_polygon")));
-		astEnd;
+		pgast_ast_end();
 		PG_RETURN_NULL();
 	}
 
@@ -51,13 +51,13 @@ pgast_bounding_circle_header(PG_FUNCTION_ARGS) // (text fits_header)
 	astGetRegionDisc(sky_polygon, centre, &(circle->radius));
 
 	if (!astOK) {
-		astEnd;
+		pgast_ast_end();
 		pgast_ast_error("pgAST error (pgast_bounding_circle_header): astGetRegionDisc failed.");
 	}
 
 	if (circle->radius == AST__BAD) {
 		// A region on the sky is always bounded, so this is an AST failure.
-		astEnd;
+		pgast_ast_end();
 		pgast_ast_error("pgAST error (pgast_bounding_circle_header): astGetRegionDisc returned no radius.");
 	}
 	
@@ -110,7 +110,7 @@ pgast_bounding_circle_polygon(PG_FUNCTION_ARGS) // (polygon polygon)
 	double *points = (double*)palloc(n_vert * 2 * sizeof(double));
 	pgPolygon2astPoints(polygon, points);
 	
-	astBegin;
+	pgast_ast_enter();
 
 	AstSkyFrame *icrsFrame = astSkyFrame("System=ICRS, Equinox=J2000"); // naxes, options
 #pragma GCC diagnostic push
@@ -124,7 +124,7 @@ pgast_bounding_circle_polygon(PG_FUNCTION_ARGS) // (polygon polygon)
 #pragma GCC diagnostic pop
 
 	if (ast_polygon == AST__NULL) {
-		astEnd;
+		pgast_ast_end();
 		pgast_ast_error("pgAST error (pgast_bounding_circle_polygon): AST could not build a polygon from the PostgreSQL polygon.");
 	}
 
@@ -134,7 +134,7 @@ pgast_bounding_circle_polygon(PG_FUNCTION_ARGS) // (polygon polygon)
 	circle->center.y = rad2deg(centre[1]);
 	circle->radius = rad2deg(circle->radius);
 
-	astEnd;
+	pgast_ast_end_checked();
 
 	pfree(points);
 	

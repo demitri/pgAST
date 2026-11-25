@@ -15,7 +15,7 @@ pgast_getregiondisc(PG_FUNCTION_ARGS)
 	// (pg function from utils/builtins.h)
 	fits_header = text_to_cstring(PG_GETARG_TEXT_P(0));
 	
-	astBegin;
+	pgast_ast_enter();
 	
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wformat-security"
@@ -29,7 +29,7 @@ pgast_getregiondisc(PG_FUNCTION_ARGS)
 	
 	int32_t is_sky_frame = astIsASkyFrame(wcsinfo);
 	
+	pgast_ast_end();
+
 	PG_RETURN_INT32(is_sky_frame);
-	
-	astEnd;
 }

@@ -2,6 +2,9 @@
 //#include "ast.h"
 #include "pgast.h"
 #include "pgast_util.h"
+
+// Number of open AST contexts; see pgast_ast_enter() in pgast.h.
+int pgast_ast_depth = 0;
 #include <math.h>
 
 #define degToRad(angleInDegrees) ((angleInDegrees) * M_PI / 180.0)
@@ -73,7 +76,7 @@ AstPolygon* pgPolygon2astPolygon(POLYGON *polygon, AstSkyFrame *frame) //, doubl
 	int n_vert = polygon->npts; // number of vertices/coordinate pairs (i.e. Point)
 //	Point *polygon_points = polygon->p;
 	
-	astBegin;
+	pgast_ast_begin();
 	
 	points = (double*)palloc(n_vert * 2 * sizeof(double));
 	pgPolygon2astPoints(polygon, points);
@@ -99,12 +102,12 @@ AstPolygon* pgPolygon2astPolygon(POLYGON *polygon, AstSkyFrame *frame) //, doubl
 	pfree(points);
 
 	if (!astOK) {
-		astEnd;
+		pgast_ast_end();
 		pgast_ast_error("pgAST (pgPolygon2astPolygon): AST could not build a polygon from the PostgreSQL polygon.");
 	}
 
 	astExport(ast_polygon);
-	astEnd;
+	pgast_ast_end();
 	
 	return ast_polygon;
 }
@@ -226,7 +229,7 @@ pgast_distance(PG_FUNCTION_ARGS) // double x0, y0, x1, y1
 	const double point2[2]= {deg2rad(x1), deg2rad(y1)};
 	double distance;
 
-	astBegin;
+	pgast_ast_enter();
 	
 	// Since we're not converting points from one frame to another,
 	// just pick a sky frame to work in.
@@ -255,7 +258,7 @@ pgast_distance_radec_point(PG_FUNCTION_ARGS)
 	const double point2[2]= {deg2rad(p->x), deg2rad(p->y)};
 	double distance;
 	
-	astBegin;
+	pgast_ast_enter();
 	
 	// Since we're not converting points from one frame to another,
 	// just pick a sky frame to work in.
@@ -283,7 +286,7 @@ pgast_distance_points(PG_FUNCTION_ARGS)
 	const double point2[2]= {deg2rad(p2->x), deg2rad(p2->y)};
 	double distance;
 	
-	astBegin;
+	pgast_ast_enter();
 	
 	// Since we're not converting points from one frame to another,
 	// just pick a sky frame to work in.

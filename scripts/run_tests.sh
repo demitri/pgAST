@@ -46,6 +46,14 @@ cleanup() {
 }
 trap cleanup EXIT
 
+# Every AST context must be counted (see pgast_ast_enter in src/pgast.h), so
+# raw astBegin/astEnd calls are not allowed in the extension source.
+# Blind spot: a call written inside a /* */ comment block followed by ';'.
+if grep -nE '^[^/]*\bast(Begin|End)[[:space:]]*;' "$repo"/src/*.c; then
+    echo "run_tests.sh: use pgast_ast_enter/pgast_ast_begin/pgast_ast_end, not astBegin/astEnd (lines above)." >&2
+    exit 1
+fi
+
 # On macOS, PGXS compiles with the SDK PostgreSQL was built against
 # (PG_SYSROOT). After an Xcode update that SDK path can be gone; use the
 # current one instead.

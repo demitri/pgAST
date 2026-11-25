@@ -120,6 +120,24 @@ SELECT pgast_point_in_polygon(0.0,   0.0, test_header_big()) AS centre,
  t      | f      | t              | f
 (1 row)
 
+-- A header in another celestial system: results are still ICRS. The image
+-- is centred on Galactic (l, b) = (0, 0), which is ICRS (RA, Dec) =
+-- (266.40499, -28.93617) (IAU definition of the Galactic system).
+CREATE FUNCTION test_header_galactic() RETURNS text LANGUAGE sql IMMUTABLE AS $$
+    SELECT replace(replace(test_header(0, 0, -0.001),
+                           '''RA---TAN''', '''GLON-TAN'''),
+                   '''DEC--TAN''', '''GLAT-TAN''')
+$$;
+SELECT pgast_point_in_polygon(266.40499, -28.93617, test_header_galactic()) AS icrs_centre,
+       pgast_point_in_polygon(0.0, 0.0, test_header_galactic()) AS galactic_numbers,
+       round((center(pgast_bounding_circle(test_header_galactic())))[0]::numeric, 3) AS circle_ra,
+       round((center(pgast_bounding_circle(test_header_galactic())))[1]::numeric, 3) AS circle_dec,
+       pgast_point_in_polygon(266.40499, -28.93617, pgast_bounding_polygon(test_header_galactic())) AS polygon_icrs_centre;
+ icrs_centre | galactic_numbers | circle_ra | circle_dec | polygon_icrs_centre 
+-------------+------------------+-----------+------------+---------------------
+ t           | f                |   266.405 |    -28.936 | t
+(1 row)
+
 -- An AST failure must raise an error, and must not leave AST's (global)
 -- error status set: if it did, every later call in the same session would
 -- silently do nothing. 'RA---QQQ' is not a FITS projection code.

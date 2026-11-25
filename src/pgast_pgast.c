@@ -59,7 +59,7 @@ pgast_point_in_polygon_poly(PG_FUNCTION_ARGS) // (polygon polygon, float8 ra, fl
 		points_array[n_vert + i] = deg2rad((points[i]).y);
 	}
 	
-	astBegin;
+	pgast_ast_enter();
 	
 	AstSkyFrame *icrsFrame = astSkyFrame("System=ICRS, Equinox=J2000"); // naxes, options
 #pragma GCC diagnostic push
@@ -112,12 +112,12 @@ pgast_point_in_polygon_header(PG_FUNCTION_ARGS) // (text fits_header, float ra, 
 	//ereport(DEBUG5, (errmsg("pgast_point_in_polygon_header called")));
 	//fprintf(stderr, "\nread: (%.4f, %.4f) %s\n", ra, dec, fits_header);
 	
-	astBegin;
+	pgast_ast_enter();
 	
 	AstPolygon *sky_polygon = fitsheader2polygon(fits_header, &npoints);
 	if (sky_polygon == AST__NULL) {
 		// for example, incomplete FITS header or header does not contain WCS, image, etc.
-		astEnd;
+		pgast_ast_end();
 		PG_RETURN_NULL();
 	}
 	
@@ -166,7 +166,7 @@ wcs_test(PG_FUNCTION_ARGS)
 	/* initialize AST status */
 //	status = 0;
 	
-	astBegin;
+	pgast_ast_enter();
 	
 	/* add all cards at once as a string */
 	/*

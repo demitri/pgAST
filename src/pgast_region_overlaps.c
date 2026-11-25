@@ -48,7 +48,7 @@ pgast_icrs_polygon_overlaps_hdu(PG_FUNCTION_ARGS) // (polygon a_polygon, text fi
 	// ------------
 	bool polygons_overlap;
 
-	astBegin;
+	pgast_ast_enter();
 
 	// polygon 1
 	// ---------
@@ -56,7 +56,7 @@ pgast_icrs_polygon_overlaps_hdu(PG_FUNCTION_ARGS) // (polygon a_polygon, text fi
 	astPolygon1 = pgPolygon2astPolygon(pgpolygon, icrsFrame);
 
 	if (astPolygon1 == AST__NULL) {
-		astEnd;
+		pgast_ast_end();
 		pgast_ast_error("pgAST (pgast_icrs_polygon_overlaps_hdu): the PostgreSQL polygon could not be converted to an AST polygon.");
 	}
 	
@@ -66,7 +66,7 @@ pgast_icrs_polygon_overlaps_hdu(PG_FUNCTION_ARGS) // (polygon a_polygon, text fi
 
 	if (astPolygon2 == AST__NULL) {
 		ereport(DEBUG1, (errmsg("AST polygon could not be created from FITS header")));
-		astEnd;
+		pgast_ast_end();
 		PG_RETURN_NULL();
 	}
 	
@@ -87,7 +87,7 @@ pgast_icrs_polygon_overlaps_hdu(PG_FUNCTION_ARGS) // (polygon a_polygon, text fi
 	if (overlap_value == 0) {
 		// Both regions are on the sky, so a failed mapping between them means
 		// AST failed; that is not the same as "no overlap".
-		astEnd;
+		pgast_ast_end();
 		pgast_ast_error("pgAST (pgast_icrs_polygon_overlaps_hdu): astOverlap could not compare the polygon "
 						"with the region from the FITS header.");
 	}

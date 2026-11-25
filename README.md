@@ -121,7 +121,7 @@ pgast_point_in_polygon(float8 ra, float8 dec, text fits_header_string)
 
 This function takes a PostgreSQL polygon, assumed to be in the ICRS coordinate system in degrees, and compares it to a polygon derived from the FITS header of a 2D image HDU. The FITS header provided is not required to also be in the ICRS coordinate system — the underlying AST code will perform any necessary transformation.
 
-`NULL` is returned if the FITS header is not of a 2D image with axis lengths at least 2. An error is raised if a WCS with a sky frame cannot be read from the header, if the image footprint does not contain its own centre pixel (an image covering more than half the sky, or a WCS that is not well behaved over the image), or if AST cannot compare the two regions.
+`NULL` is returned if the FITS header is not of a 2D image with axis lengths at least 2. An error is raised if a WCS with a sky frame cannot be read from the header, if the WCS does not map the image's centre pixel to the sky, if neither vertex order of the image boundary gives a polygon that contains the centre pixel (a WCS that is not well behaved over the image), or if AST cannot compare the two regions. Footprints larger than half the sky are supported.
 
 ```sql
 pgast_icrs_polygon_overlaps_hdu(polygon icrs_polygon, text fits_header_as_string)

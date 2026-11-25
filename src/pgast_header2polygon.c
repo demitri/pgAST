@@ -52,7 +52,7 @@ AstPolygon* fitsheader2polygon(const char *header, int *npoints) //, double *pol
 	AstPolygon *flat_polygon, *reduced_flat_polygon, *sky_frame_polygon;
 	double *points, *mesh_points;
 	
-	astBegin;
+	pgast_ast_begin();
 	
 	//ereport(DEBUG1, (errmsg("fitsheader2polygon: start")));
 	
@@ -69,7 +69,7 @@ AstPolygon* fitsheader2polygon(const char *header, int *npoints) //, double *pol
 	//ereport(DEBUG1,  (errmsg("header:\n%s", header)));
 	
 	if (!astOK) {
-		astEnd;
+		pgast_ast_end();
 		pgast_ast_error("pgAST error (fitsheader2polygon): An error occurred when reading the FITS header.");
 	}
 
@@ -92,12 +92,12 @@ AstPolygon* fitsheader2polygon(const char *header, int *npoints) //, double *pol
 		success = astGetFitsI(fitsChan, "NAXIS", &naxes); // returns 0 if not found, 1 otherwise
 		if (success == 0) {
 			ereport(DEBUG1, (errmsg("pgAST error (fitsheader2polygon): astGetFits did not find 'NAXIS' keyword.")));
-			astEnd;
+			pgast_ast_end();
 			return AST__NULL;
 		}
 		else if (naxes != 2) {
 			ereport(DEBUG1, (errmsg("pgAST error (fitsheader2polygon): header is not a 2D image (NAXIS=%d).", naxes)));
-			astEnd;
+			pgast_ast_end();
 			return AST__NULL;
 		}
 		// read NAXIS1 value
@@ -105,12 +105,12 @@ AstPolygon* fitsheader2polygon(const char *header, int *npoints) //, double *pol
 		success = astGetFitsI(fitsChan, "NAXIS1", &dim1);
 		if (success == 0) {
 			ereport(DEBUG1, (errmsg("pgAST error (fitsheader2polygon): astGetFits did not find 'NAXIS1' keyword.")));
-			astEnd;
+			pgast_ast_end();
 			return AST__NULL;
 		}
 		else if (dim1 < 2) {
 			ereport(DEBUG1, (errmsg("pgAST error (fitsheader2polygon): Each axis must have dimension >= 2 (NAXIS1=%d).", dim1)));
-			astEnd;
+			pgast_ast_end();
 			return AST__NULL;
 		}
 
@@ -119,12 +119,12 @@ AstPolygon* fitsheader2polygon(const char *header, int *npoints) //, double *pol
 		success = astGetFitsI(fitsChan, "NAXIS2", &dim2);
 		if (success == 0) {
 			ereport(DEBUG1, (errmsg("pgAST error (fitsheader2polygon): astGetFits did not find 'NAXIS2' keyword.")));
-			astEnd;
+			pgast_ast_end();
 			return AST__NULL;
 		}
 		else if (dim2 < 2) {
 			ereport(DEBUG1, (errmsg("pgAST error (fitsheader2polygon): Each axis must have dimension >= 2 (NAXIS2=%d).", dim2)));
-			astEnd;
+			pgast_ast_end();
 			return AST__NULL;
 		}
 	}
@@ -138,7 +138,7 @@ AstPolygon* fitsheader2polygon(const char *header, int *npoints) //, double *pol
 	wcs_frames = astRead(fitsChan);
 	
 	if (wcs_frames == AST__NULL) {
-		astEnd;
+		pgast_ast_end();
 		pgast_ast_error("pgAST error (fitsheader2polygon): No valid WCS could be read from the provided header.");
 	}
 
@@ -147,8 +147,19 @@ AstPolygon* fitsheader2polygon(const char *header, int *npoints) //, double *pol
 	pixel_frame = astGetFrame(wcs_frames, AST__BASE);
 	sky_frame = astGetFrame(wcs_frames, AST__CURRENT);
 	if (astIsASkyFrame(sky_frame) == 0) { // returns 1 if yes, 0 if no
-		astEnd;
+		pgast_ast_end();
 		pgast_ast_error("pgAST error (fitsheader2polygon): The provided WCS does not contain a sky frame.");
+	}
+
+	// pgAST works in ICRS. Setting System on the FrameSet re-maps its current
+	// (sky) Frame, keeping the FrameSet consistent (SUN/211, "Maintaining the
+	// Integrity of FrameSets"), so a header in, e.g., Galactic or FK4
+	// coordinates yields ICRS positions from here on.
+	astSet(wcs_frames, "System=ICRS");
+	sky_frame = astGetFrame(wcs_frames, AST__CURRENT);
+	if (!astOK) {
+		pgast_ast_end();
+		pgast_ast_error("pgAST error (%s): could not convert the WCS to ICRS.", __func__);
 	}
 	// ---------------------------------------------
 
@@ -171,7 +182,7 @@ AstPolygon* fitsheader2polygon(const char *header, int *npoints) //, double *pol
 #pragma GCC diagnostic pop
 
 		if (pixelbox == AST__NULL) {
-			astEnd;
+			pgast_ast_end();
 			pgast_ast_error("pgAST error (fitsheader2polygon): astBox returned NULL.");
 		}
 	}
@@ -190,7 +201,7 @@ AstPolygon* fitsheader2polygon(const char *header, int *npoints) //, double *pol
 
 	// if skybox == AST__NULL : handle error...
 	if (skybox == AST__NULL) {
-		astEnd;
+		pgast_ast_end();
 		pgast_ast_error("pgAST error (fitsheader2polygon): astMapRegion returned NULL.");
 	}
 
@@ -222,7 +233,7 @@ AstPolygon* fitsheader2polygon(const char *header, int *npoints) //, double *pol
 	
 	// if skybox == AST__NULL : handle error...
 	if (!astOK) {
-		astEnd;
+		pgast_ast_end();
 		pgast_ast_error("pgAST error (fitsheader2polygon): astGetRegionMesh (1) failed.");
 	}
 
@@ -256,7 +267,7 @@ AstPolygon* fitsheader2polygon(const char *header, int *npoints) //, double *pol
 	//	ereport(WARNING, (errmsg("%f, %f", rad2deg(mesh_points[i]), rad2deg(mesh_points[2*i]))));
 	
 	if (!astOK) {
-		astEnd;
+		pgast_ast_end();
 		pgast_ast_error("pgAST error (fitsheader2polygon): astGetRegionMesh (2) failed.");
 	}
 	
@@ -321,7 +332,12 @@ AstPolygon* fitsheader2polygon(const char *header, int *npoints) //, double *pol
 					   maxcoord,				// ignored here
 					   &num_points,				// number of points needed
 					   NULL);					// NULL = just return number of points needed
-					   
+
+	if (!astOK || num_points < 3) {
+		pgast_ast_end();
+		pgast_ast_error("pgAST error (fitsheader2polygon): astGetRegionPoints (count) failed or gave %d points.", num_points);
+	}
+
 	//	ereport(DEBUG1, (errmsg("fitsheader2polygon: after astGetRegionPoints (3)")));
 
 	// values to return
@@ -343,6 +359,11 @@ AstPolygon* fitsheader2polygon(const char *header, int *npoints) //, double *pol
 					   maxcoord,	// number of axes of region (2D image = 2)
 					   &num_points,
 					   points);		// returned array
+
+	if (!astOK) {
+		pgast_ast_end();
+		pgast_ast_error("pgAST error (fitsheader2polygon): astGetRegionPoints failed.");
+	}
 
 	//ereport(DEBUG1, (errmsg("astNorm before: %f %f", points[0], points[1])));
 
@@ -404,7 +425,7 @@ AstPolygon* fitsheader2polygon(const char *header, int *npoints) //, double *pol
 				 centre_x, centre_y);	// output (sky) coordinates
 
 		if (!astOK || centre_x[0] == AST__BAD || centre_y[0] == AST__BAD) {
-			astEnd;
+			pgast_ast_end();
 			pgast_ast_error("pgAST (fitsheader2polygon): the WCS does not map the centre pixel (%.1f, %.1f) to the sky.",
 							pixel_x[0], pixel_y[0]);
 		}
@@ -434,7 +455,7 @@ AstPolygon* fitsheader2polygon(const char *header, int *npoints) //, double *pol
 			pfree(reversed_points);
 
 			if (!astOK || !astPointInRegion(sky_frame_polygon, centre)) {
-				astEnd;
+				pgast_ast_end();
 				pgast_ast_error("pgAST (fitsheader2polygon): neither vertex order gives a polygon that contains "
 								"the centre pixel; the WCS is not well behaved over the image.");
 			}
@@ -450,7 +471,7 @@ AstPolygon* fitsheader2polygon(const char *header, int *npoints) //, double *pol
 
 	astExport(sky_frame_polygon);
 	
-	astEnd;
+	pgast_ast_end();
 
 	pfree(points);
 

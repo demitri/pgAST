@@ -29,13 +29,13 @@ pgast_bounding_polygon(PG_FUNCTION_ARGS) // (text fits_header_as_string)
 	int maxcoord = 2; // number of axis values per point (e.g. 2D image = 2)
 	double *points;
 	
-	astBegin;
+	pgast_ast_enter();
 	
 	AstPolygon *sky_polygon = fitsheader2polygon(fits_header, &npoints);
 	if (sky_polygon == AST__NULL) {
 		// for example, incomplete FITS header or header does not contain WCS, image, etc.
 		ereport(DEBUG1, (errmsg("AST polygon could not be created from header")));
-		astEnd;
+		pgast_ast_end();
 		PG_RETURN_NULL();
 	}
 

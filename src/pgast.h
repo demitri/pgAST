@@ -19,6 +19,30 @@
 #include "ast.h"
 
 /*
+ AST contexts (astBegin/astEnd) are counted, so that contexts left open by
+ an error can be closed. ereport(ERROR) longjmps past every astEnd between
+ the error and the SQL function's entry, leaving those contexts, and the AST
+ objects they own, open for the life of the backend. pgast_ast_enter(), used
+ at the start of every SQL function, first closes any contexts an earlier
+ call left open and clears any error status it left, then begins this call's
+ context. Never call astBegin/astEnd directly (scripts/run_tests.sh checks).
+*/
+extern int pgast_ast_depth;
+
+#define pgast_ast_begin() \
+	do { astBegin; pgast_ast_depth++; } while (0)
+
+#define pgast_ast_end() \
+	do { astEnd; pgast_ast_depth--; } while (0)
+
+#define pgast_ast_enter() \
+	do { \
+		astClearStatus; \
+		while (pgast_ast_depth > 0) pgast_ast_end(); \
+		pgast_ast_begin(); \
+	} while (0)
+
+/*
  Raise a PostgreSQL ERROR for a failure inside AST code.
 
  AST's error status is global to the backend. ereport(ERROR) longjmps out of
@@ -42,10 +66,10 @@
 #define pgast_ast_end_checked() \
 	do { \
 		if (!astOK) { \
-			astEnd; \
+			pgast_ast_end(); \
 			pgast_ast_error("pgAST (%s): an AST call failed.", __func__); \
 		} \
-		astEnd; \
+		pgast_ast_end(); \
 	} while (0)
 
 #endif /* __PGAST2_H__ */
