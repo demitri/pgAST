@@ -86,7 +86,9 @@ tests with different conditions for when the disc can be trusted) each
 broke a realistic case: the larger-than-half-sky footprint, then a
 non-convex polygon in rest-of-sky order. The review of 1c952ff proposed a
 sound test (one point 90 degrees from the disc centre decides which side
-everything outside the disc is on); it is a proposal, not implemented.
+everything outside the disc is on). It is used for bounding circles
+(`pgast_region_bounding_disc`, below) but not for point tests; using it
+there too is a proposal awaiting a decision.
 Tests use a point 90 degrees away as their far-away point.
 
 ## Bounding circles
