@@ -7,6 +7,7 @@
 
 #include "pgast.h"
 #include "pgast_header2polygon.h"
+#include "pgast_util.h"
 
 /**
  This function takes a FITS header as a single string and returns the polygon that describes the perimeter of the image.
@@ -102,5 +103,6 @@ pgast_bounding_polygon(PG_FUNCTION_ARGS) // (text fits_header_as_string)
 
 	pgast_ast_end_checked();
 	
+	pgast_polygon_set_boundbox(pg_polygon);
 	PG_RETURN_POLYGON_P(pg_polygon);
 }

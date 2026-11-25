@@ -33,6 +33,25 @@ void pgPolygon2astPoints(POLYGON *polygon, double *points)
 }
 
 /**
+ Fill in the bounding box of a PostgreSQL polygon from its points, as
+ PostgreSQL's own polygon input does (make_bound_box in geo_ops.c, which is
+ not exported). PostgreSQL's polygon operators (&&, @>, box(polygon), ...)
+ read this box first, so a polygon built in C without it gives wrong answers.
+ */
+void pgast_polygon_set_boundbox(POLYGON *polygon)
+{
+	BOX *box = &polygon->boundbox;
+	box->low.x = box->high.x = polygon->p[0].x;
+	box->low.y = box->high.y = polygon->p[0].y;
+	for (int i=1; i < polygon->npts; i++) {
+		if (polygon->p[i].x < box->low.x)  box->low.x  = polygon->p[i].x;
+		if (polygon->p[i].x > box->high.x) box->high.x = polygon->p[i].x;
+		if (polygon->p[i].y < box->low.y)  box->low.y  = polygon->p[i].y;
+		if (polygon->p[i].y > box->high.y) box->high.y = polygon->p[i].y;
+	}
+}
+
+/**
 Convert a FITS header, provided in the form of a single C string, into a FitsChan object.
 This function assumes it will be called in between astBegin/astEnd.
 */

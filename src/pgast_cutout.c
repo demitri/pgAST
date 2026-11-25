@@ -60,6 +60,7 @@ pgast_cutout(PG_FUNCTION_ARGS) // (fits_header text, ra double, dec double, side
 	AstFrameSet *wcs_frames;
 	AstFrame *sky_frame; // *pixel_frame
 	double p0_pix[2], p0_world[2];
+	double p0c_world[2]; // sky position of the centre of the pixel containing p0
 	double p1_pix[2], p1_world[2];
 	double p2_pix[2], p2_world[2];
 	double x1_pix[2], x1_world[2];
@@ -181,6 +182,13 @@ pgast_cutout(PG_FUNCTION_ARGS) // (fits_header text, ra double, dec double, side
 	p0_pix[0] = round(p0_pix[0]); // land on one specific pixel, not a partial pixel
 	p0_pix[1] = round(p0_pix[1]);
 
+	// The box is built around that pixel centre, so the offsets below start
+	// from its sky position, not from the requested one: otherwise the
+	// direction to p1 (one pixel below the centre) leans away from the pixel
+	// axis and the box comes out the wrong size.
+	astTran2(wcs_frames, 1, &p0_pix[0], &p0_pix[1], PIXEL2WORLD, &p0c_world[0], &p0c_world[1]);
+	cutout_require_good(p0c_world, 2, "the centre of the box");
+
 	// find p1 by moving straight down the pixel grid from p0. One pixel is
 	// enough to give the direction, and stays where the WCS is defined: a
 	// point at the bottom row can lie outside the projection (e.g. beyond
@@ -206,7 +214,7 @@ pgast_cutout(PG_FUNCTION_ARGS) // (fits_header text, ra double, dec double, side
 	//ereport(DEBUG1, (errmsg("p1_world: (%f, %f) rad, (%f, %f) deg", p1_world[0], p1_world[1], rad2deg(p1_world[0]), rad2deg(p1_world[1]))));
 
 	// find x1 as an offset from p0 towards p1
-	astOffset(wcs_frames, p0_world, p1_world, half_side_length, x1_world);
+	astOffset(wcs_frames, p0c_world, p1_world, half_side_length, x1_world);
 	cutout_require_good(x1_world, 2, "the bottom edge of the box");
 
 	//ereport(DEBUG1, (errmsg("x1_world: (%f, %f) rad, (%f, %f) deg", x1_world[0], x1_world[1], rad2deg(x1_world[0]), rad2deg(x1_world[1]))));
@@ -359,5 +367,6 @@ pgast_cutout(PG_FUNCTION_ARGS) // (fits_header text, ra double, dec double, side
 	
 	pgast_ast_end_checked();
 	
+	pgast_polygon_set_boundbox(pg_polygon);
 	PG_RETURN_POLYGON_P(pg_polygon);
 }

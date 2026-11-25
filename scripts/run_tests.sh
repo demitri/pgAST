@@ -50,7 +50,15 @@ trap cleanup EXIT
 # raw astBegin/astEnd calls are not allowed in the extension source.
 # Lines that start with // are skipped. Blind spot: a call written inside a
 # /* */ comment block. (A trailing // comment containing one is flagged.)
-if grep -nHE '\bast(Begin|End)[[:space:]]*;' "$repo"/src/*.c | grep -vE '^[^:]+:[0-9]+:[[:space:]]*//'; then
+gate_rc=0
+gate_hits="$(grep -nHE '\bast(Begin|End)[[:space:]]*;' "$repo"/src/*.c)" || gate_rc=$?
+if (( gate_rc > 1 )); then
+    echo "run_tests.sh: the astBegin/astEnd check could not run (grep exit $gate_rc)." >&2
+    exit 1
+fi
+gate_hits="$(printf '%s\n' "$gate_hits" | grep -vE '^[^:]+:[0-9]+:[[:space:]]*//|^$' || true)"
+if [[ -n "$gate_hits" ]]; then
+    printf '%s\n' "$gate_hits"
     echo "run_tests.sh: use pgast_ast_enter/pgast_ast_begin/pgast_ast_end, not astBegin/astEnd (lines above)." >&2
     exit 1
 fi

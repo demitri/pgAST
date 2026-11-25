@@ -66,3 +66,14 @@ inside.
   not be. Choosing the convention for stored polygons (normalize to the
   smaller region, or require the AST order and reject the other) is the open
   decision on GitHub issue #1.
+
+## AST quirk: the exact antipode
+
+`astPointInRegion` (and so `pgast_point_in_polygon`) is unreliable at the
+**exact antipode** of a small polygon. Every great circle through that point
+also passes through the polygon, so a spherical point-in-polygon test is
+ill-defined there. Measured 2026-11-25, AST 9.2.14 and 9.5.0: a 43-arcsec
+cutout box around (150, 2) "contained" both its centre and (330, -2), while
+(329, -2), a point 90 degrees away and one 58 degrees north were all
+outside. Tests use a point 90 degrees away, not the antipode, as the
+far-away point.

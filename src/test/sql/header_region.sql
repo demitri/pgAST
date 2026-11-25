@@ -43,7 +43,7 @@ SELECT name,
        pgast_point_in_polygon(150.0,  2.0,  header) AS centre,
        pgast_point_in_polygon(150.04, 2.04, header) AS near_corner,
        pgast_point_in_polygon(151.0,  2.0,  header) AS one_deg_east,
-       pgast_point_in_polygon(330.0, -2.0,  header) AS antipode
+       pgast_point_in_polygon(240.0,  2.0,  header) AS ninety_deg_away
 FROM images ORDER BY name;
 
 -- The polygon returned by pgast_bounding_polygon must describe the same
@@ -51,7 +51,10 @@ FROM images ORDER BY name;
 SELECT name,
        pgast_point_in_polygon(150.0,  2.0,  pgast_bounding_polygon(header)) AS centre,
        pgast_point_in_polygon(151.0,  2.0,  pgast_bounding_polygon(header)) AS one_deg_east,
-       pgast_point_in_polygon(330.0, -2.0,  pgast_bounding_polygon(header)) AS antipode
+       pgast_point_in_polygon(240.0,  2.0,  pgast_bounding_polygon(header)) AS ninety_deg_away,
+       -- box(polygon) is the polygon's stored bounding box, which PostgreSQL's
+       -- polygon operators (e.g. &&) read; it must be filled in.
+       box(pgast_bounding_polygon(header)) @> point '(150, 2)' AS stored_box_contains_centre
 FROM images ORDER BY name;
 
 -- Overlap of a stored footprint with a header-derived region.
@@ -124,11 +127,25 @@ SELECT pgast_point_in_polygon(266.40499, -28.93617,
 
 -- pgast_cutout must describe the box, not the rest of the sky, at both
 -- pixel parities: a 36 arcsec box around the image centre contains the
--- centre and not the antipode.
+-- centre and not a point 90 deg away. (Not the antipode: AST's
+-- point-in-polygon test is unreliable at the exact antipode of a small
+-- polygon; see AI/ast_polygon_orientation.md.)
 SELECT name,
        pgast_point_in_polygon(150.0, 2.0, pgast_cutout(header, 150.0, 2.0, 36.0)) AS cutout_centre,
-       pgast_point_in_polygon(330.0, -2.0, pgast_cutout(header, 150.0, 2.0, 36.0)) AS cutout_antipode
+       pgast_point_in_polygon(240.0, 2.0, pgast_cutout(header, 150.0, 2.0, 36.0)) AS cutout_ninety_deg_away
 FROM images ORDER BY name;
+
+-- The box is at least the requested size on each side, also when the
+-- position is not at a pixel centre: (150, 2.0009) is 0.4 pixel from one.
+-- Sides measured on the sky from the corners: RA extent times cos(Dec),
+-- and the Dec extent, in arcsec.
+SELECT name,
+       width(box(c)) * cos(radians(2.0)) * 3600 >= 37.44 AS wide_enough,
+       height(box(c)) * 3600 >= 37.44 AS tall_enough,
+       width(box(c)) * cos(radians(2.0)) * 3600 < 37.44 + 2 * 3.6 AS width_within_two_pixels,
+       height(box(c)) * 3600 < 37.44 + 2 * 3.6 AS height_within_two_pixels
+FROM (SELECT name, pgast_cutout(header, 150.0, 2.0009, 37.44) AS c FROM images) t
+ORDER BY name;
 
 -- An AST failure must raise an error, and must not leave AST's (global)
 -- error status set: if it did, every later call in the same session would
