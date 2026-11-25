@@ -56,9 +56,8 @@ pgast_icrs_polygon_overlaps_hdu(PG_FUNCTION_ARGS) // (polygon a_polygon, text fi
 	astPolygon1 = pgPolygon2astPolygon(pgpolygon, icrsFrame);
 
 	if (astPolygon1 == AST__NULL) {
-		ereport(DEBUG1, (errmsg("PostgreSQL polygon could not be converted to an AST polygon.")));
 		astEnd;
-		PG_RETURN_NULL();
+		pgast_ast_error("pgAST (pgast_icrs_polygon_overlaps_hdu): the PostgreSQL polygon could not be converted to an AST polygon.");
 	}
 	
 	// polygon 2

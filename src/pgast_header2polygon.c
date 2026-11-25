@@ -171,9 +171,8 @@ AstPolygon* fitsheader2polygon(const char *header, int *npoints) //, double *pol
 #pragma GCC diagnostic pop
 
 		if (pixelbox == AST__NULL) {
-			ereport(WARNING, (errmsg("pgAST error (fitsheader2polygon): astBox returned NULL. (status=%d", astStatus)));
 			astEnd;
-			return AST__NULL;
+			pgast_ast_error("pgAST error (fitsheader2polygon): astBox returned NULL.");
 		}
 	}
 
@@ -191,9 +190,8 @@ AstPolygon* fitsheader2polygon(const char *header, int *npoints) //, double *pol
 
 	// if skybox == AST__NULL : handle error...
 	if (skybox == AST__NULL) {
-		ereport(WARNING, (errmsg("pgAST error (fitsheader2polygon): astMapRegion returned NULL. (status=%d", astStatus)));
 		astEnd;
-		return AST__NULL;
+		pgast_ast_error("pgAST error (fitsheader2polygon): astMapRegion returned NULL.");
 	}
 
 	// Create a mesh: this is an array of points evenly

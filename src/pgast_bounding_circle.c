@@ -56,10 +56,9 @@ pgast_bounding_circle_header(PG_FUNCTION_ARGS) // (text fits_header)
 	}
 
 	if (circle->radius == AST__BAD) {
-		// error: the region is unbounded
-		ereport(DEBUG1, (errmsg("pgast_bounding_circle_header: supplied region is unbounded")));
+		// A region on the sky is always bounded, so this is an AST failure.
 		astEnd;
-		PG_RETURN_NULL();
+		pgast_ast_error("pgAST error (pgast_bounding_circle_header): astGetRegionDisc returned no radius.");
 	}
 	
 	//ereport(DEBUG1, (errmsg("pgast_bounding_circle_header: radius=%f", circle->radius)));
@@ -125,9 +124,8 @@ pgast_bounding_circle_polygon(PG_FUNCTION_ARGS) // (polygon polygon)
 #pragma GCC diagnostic pop
 
 	if (ast_polygon == AST__NULL) {
-		// for example, incomplete FITS header or header does not contain WCS, image, etc.
 		astEnd;
-		PG_RETURN_NULL();
+		pgast_ast_error("pgAST error (pgast_bounding_circle_polygon): AST could not build a polygon from the PostgreSQL polygon.");
 	}
 
 	astGetRegionDisc(ast_polygon, centre, &(circle->radius));
