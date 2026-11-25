@@ -114,6 +114,14 @@ SELECT pgast_point_in_polygon(266.40499, -28.93617, test_header_galactic()) AS i
        round((center(pgast_bounding_circle(test_header_galactic())))[1]::numeric, 3) AS circle_dec,
        pgast_point_in_polygon(266.40499, -28.93617, pgast_bounding_polygon(test_header_galactic())) AS polygon_icrs_centre;
 
+-- pgast_cutout with the Galactic header: the requested centre is ICRS. A
+-- 36 arcsec (0.01 deg) cutout around the image centre must contain that
+-- centre and not a point 0.02 deg away.
+SELECT pgast_point_in_polygon(266.40499, -28.93617,
+           pgast_cutout(test_header_galactic(), 266.40499, -28.93617, 36.0)) AS cutout_centre,
+       pgast_point_in_polygon(266.40499, -28.91617,
+           pgast_cutout(test_header_galactic(), 266.40499, -28.93617, 36.0)) AS cutout_0p02_north;
+
 -- An AST failure must raise an error, and must not leave AST's (global)
 -- error status set: if it did, every later call in the same session would
 -- silently do nothing. 'RA---QQQ' is not a FITS projection code.
@@ -121,5 +129,6 @@ SELECT pgast_point_in_polygon(266.40499, -28.93617, test_header_galactic()) AS i
 -- what is tested.)
 \set VERBOSITY terse
 SELECT pgast_bounding_polygon(replace(test_header(150, 2, -0.001), '''RA---TAN''', '''RA---QQQ''')) IS NULL AS unknown_projection;
+SELECT pgast_bounding_polygon(replace(test_header(150, 2, -0.001), 'NAXIS1  =                  100', 'NAXIS1  =                ''abc''')) IS NULL AS malformed_naxis1;
 SELECT pgast_point_in_polygon(150.0, 2.0, test_header(150, 2, -0.001)) AS centre_after_error;
 \set VERBOSITY default

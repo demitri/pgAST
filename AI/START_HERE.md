@@ -75,7 +75,10 @@ static AST libraries; the 9.5.0 build produces the same set.
   if any AST call failed). An error longjmps past the `astEnd` calls between
   it and the SQL entry point; `pgast_ast_enter()` closes the contexts left
   open that way at the next call. `scripts/run_tests.sh` refuses raw
-  `astBegin;`/`astEnd;` in `src/*.c`.
+  `astBegin;`/`astEnd;` in `src/*.c`. Known limitation: until that next call,
+  an idle backend keeps the AST objects of its last failed call (one call's
+  worth; it does not accumulate). Releasing them immediately would need
+  `PG_TRY` at every SQL entry point.
 - Everything is ICRS: code that reads a WCS sets `System=ICRS` on the
   FrameSet right after `astRead`, so headers in other systems (Galactic,
   FK4, ...) give ICRS positions.

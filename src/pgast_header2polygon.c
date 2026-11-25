@@ -90,6 +90,10 @@ AstPolygon* fitsheader2polygon(const char *header, int *npoints) //, double *pol
 		int naxes;
 		int success;
 		success = astGetFitsI(fitsChan, "NAXIS", &naxes); // returns 0 if not found, 1 otherwise
+		if (!astOK) { // keyword present but its value is not an integer
+			pgast_ast_end();
+			pgast_ast_error("pgAST error (fitsheader2polygon): could not read 'NAXIS' as an integer.");
+		}
 		if (success == 0) {
 			ereport(DEBUG1, (errmsg("pgAST error (fitsheader2polygon): astGetFits did not find 'NAXIS' keyword.")));
 			pgast_ast_end();
@@ -103,6 +107,10 @@ AstPolygon* fitsheader2polygon(const char *header, int *npoints) //, double *pol
 		// read NAXIS1 value
 		// -----------------
 		success = astGetFitsI(fitsChan, "NAXIS1", &dim1);
+		if (!astOK) { // keyword present but its value is not an integer
+			pgast_ast_end();
+			pgast_ast_error("pgAST error (fitsheader2polygon): could not read 'NAXIS1' as an integer.");
+		}
 		if (success == 0) {
 			ereport(DEBUG1, (errmsg("pgAST error (fitsheader2polygon): astGetFits did not find 'NAXIS1' keyword.")));
 			pgast_ast_end();
@@ -117,6 +125,10 @@ AstPolygon* fitsheader2polygon(const char *header, int *npoints) //, double *pol
 		// read NAXIS2 value
 		// -----------------
 		success = astGetFitsI(fitsChan, "NAXIS2", &dim2);
+		if (!astOK) { // keyword present but its value is not an integer
+			pgast_ast_end();
+			pgast_ast_error("pgAST error (fitsheader2polygon): could not read 'NAXIS2' as an integer.");
+		}
 		if (success == 0) {
 			ereport(DEBUG1, (errmsg("pgAST error (fitsheader2polygon): astGetFits did not find 'NAXIS2' keyword.")));
 			pgast_ast_end();
