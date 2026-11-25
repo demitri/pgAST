@@ -24,8 +24,9 @@
  the error and the SQL function's entry, leaving those contexts, and the AST
  objects they own, open for the life of the backend. pgast_ast_enter(), used
  at the start of every SQL function, first closes any contexts an earlier
- call left open and clears any error status it left, then begins this call's
- context. Never call astBegin/astEnd directly (scripts/run_tests.sh checks).
+ call left open (pgast_ast_error closes them itself; this covers other
+ errors, e.g. from PostgreSQL) and clears any error status, then begins this
+ call's context. Never call astBegin/astEnd directly (scripts/run_tests.sh checks).
 */
 extern int pgast_ast_depth;
 
@@ -44,19 +45,21 @@ extern int pgast_ast_depth;
 		pgast_ast_begin(); \
 	} while (0)
 
+
 /*
  Raise a PostgreSQL ERROR for a failure inside AST code.
 
- AST's error status is global to the backend. ereport(ERROR) longjmps out of
- the function, so if the status is left set, every AST call made later in the
- same session does nothing and the functions return NULL or garbage. This
- records the status, clears it, then raises. Call astEnd for the current AST
- context first (code after ereport(ERROR) never runs).
+ AST's error status is global to the backend, and ereport(ERROR) longjmps
+ past every astEnd between here and the SQL entry point. So this records the
+ status, clears it, closes every open AST context (freeing their objects),
+ and then raises. The message arguments are evaluated after the contexts are
+ closed: never pass a string owned by an AST object (e.g. from astGetC).
 */
 #define pgast_ast_error(...) \
 	do { \
 		int pgast_ast_status_ = astStatus; \
 		astClearStatus; \
+		while (pgast_ast_depth > 0) pgast_ast_end(); \
 		ereport(ERROR, (errmsg(__VA_ARGS__), errdetail("AST status: %d", pgast_ast_status_))); \
 	} while (0)
 

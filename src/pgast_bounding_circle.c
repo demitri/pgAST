@@ -41,7 +41,6 @@ pgast_bounding_circle_header(PG_FUNCTION_ARGS) // (text fits_header)
 		PG_RETURN_NULL();
 	}
 
-	astShow(sky_polygon); //print description to stdout (see: database log)
 	//ereport(DEBUG1, (errmsg("pgast_bounding_circle_header -> header\n%s",fits_header )));
 
 	//ereport(DEBUG1, (errmsg("pgast_bounding_circle_header: astOK ? %d", astOK)));
@@ -127,6 +126,8 @@ pgast_bounding_circle_polygon(PG_FUNCTION_ARGS) // (polygon polygon)
 	}
 
 	astGetRegionDisc(ast_polygon, centre, &(circle->radius));
+	if (!astOK || circle->radius == AST__BAD)
+		pgast_ast_error("pgAST error (pgast_bounding_circle_polygon): astGetRegionDisc failed.");
 
 	circle->center.x = rad2deg(centre[0]);
 	circle->center.y = rad2deg(centre[1]);

@@ -15,6 +15,23 @@
 #define PIXEL2WORLD 1
 #define SIGN(x) ((x > 0) - (x < 0)) // https://stackoverflow.com/a/14612943/2712652
 
+/*
+ AST marks a coordinate it cannot compute (e.g. a position beyond the limb
+ of a SIN projection) as AST__BAD without setting its error status. Any such
+ value in the cutout's construction means the box extends beyond where the
+ WCS is defined: raise rather than build a polygon from AST__BAD values.
+*/
+static void cutout_require_good(const double *values, int n, const char *what)
+{
+	if (!astOK)
+		pgast_ast_error("pgAST error (pgast_cutout): AST failed computing %s.", what);
+	for (int i=0; i < n; i++) {
+		if (values[i] == AST__BAD)
+			pgast_ast_error("pgAST error (pgast_cutout): %s cannot be computed; the cutout extends beyond "
+							"the region where the WCS is defined.", what);
+	}
+}
+
 /**
  This function takes a sky position and a returns a polygon that describes a cutout with the provided side length.
  @param fits_header C string of FITS header used to construct the WCS
@@ -152,11 +169,11 @@ pgast_cutout(PG_FUNCTION_ARGS) // (fits_header text, ra double, dec double, side
 			PG_RETURN_NULL();
 		}
 		int in_region = astPointInRegion(polygon, p0_world);
-		if (in_region == 0) {
-			ereport(WARNING, (errmsg("pgAST: Provided point is outside provided polygon.")));
-		} else {
-			ereport(WARNING, (errmsg("pgAST: Infinity occurred in translating from world to pixel coords.")));
+		if (in_region != 0) {
+			// inside the image, yet no pixel coordinates: the WCS failed
+			pgast_ast_error("pgAST error (pgast_cutout): the position is inside the image but the WCS gives it no pixel coordinates.");
 		}
+		ereport(WARNING, (errmsg("pgAST: Provided point is outside provided polygon.")));
 		pgast_ast_end_checked();
 		PG_RETURN_NULL();
 	}
@@ -164,9 +181,12 @@ pgast_cutout(PG_FUNCTION_ARGS) // (fits_header text, ra double, dec double, side
 	p0_pix[0] = round(p0_pix[0]); // land on one specific pixel, not a partial pixel
 	p0_pix[1] = round(p0_pix[1]);
 
-	// find p1 by moving to bottom of pixel grid, i.e. straight down from p0
+	// find p1 by moving straight down the pixel grid from p0. One pixel is
+	// enough to give the direction, and stays where the WCS is defined: a
+	// point at the bottom row can lie outside the projection (e.g. beyond
+	// the limb of a SIN image) even when the box itself does not.
 	p1_pix[0] = p0_pix[0];
-	p1_pix[1] = 0; // use -1 instead of zero in case p0 is at edge of image
+	p1_pix[1] = p0_pix[1] - 1;
 	
 	ereport(DEBUG1, (errmsg("DBL_MIN: %f", -DBL_MAX)));
 	ereport(DEBUG1, (errmsg("p0_world: (%f, %f)", p0_world[0], p0_world[1])));
@@ -180,12 +200,14 @@ pgast_cutout(PG_FUNCTION_ARGS) // (fits_header text, ra double, dec double, side
 			 PIXEL2WORLD,                  // non-zero == forward transform
 			 &p1_world[0], &p1_world[1]);  // transformed points (out)
 	
+	cutout_require_good(p1_world, 2, "the point below the position");
 	astNorm(wcs_frames, p1_world);
 	
 	//ereport(DEBUG1, (errmsg("p1_world: (%f, %f) rad, (%f, %f) deg", p1_world[0], p1_world[1], rad2deg(p1_world[0]), rad2deg(p1_world[1]))));
 
 	// find x1 as an offset from p0 towards p1
 	astOffset(wcs_frames, p0_world, p1_world, half_side_length, x1_world);
+	cutout_require_good(x1_world, 2, "the bottom edge of the box");
 
 	//ereport(DEBUG1, (errmsg("x1_world: (%f, %f) rad, (%f, %f) deg", x1_world[0], x1_world[1], rad2deg(x1_world[0]), rad2deg(x1_world[1]))));
 
@@ -195,11 +217,12 @@ pgast_cutout(PG_FUNCTION_ARGS) // (fits_header text, ra double, dec double, side
 			 &x1_world[0], &x1_world[1],   // untransformed points (in)
 			 WORLD2PIXEL,                  // non-zero == forward transform
 			 &x1_pix[0], &x1_pix[1]);      // transformed points (out)
+	cutout_require_good(x1_pix, 2, "the pixel position of the bottom edge");
 
 	//ereport(DEBUG1, (errmsg("x1_pix  : (%f, %f)", x1_pix[0], x1_pix[1])));
 
 	// define p2: move along other pixel axis from x1_pix
-	p2_pix[0] = x1_pix[0] - 10;  // arbitrary distance
+	p2_pix[0] = x1_pix[0] - 1;  // one pixel gives the direction (see p1 above)
 	p2_pix[1] = x1_pix[1]; // hold constant
 
 	//ereport(DEBUG1, (errmsg("p2_pix  : (%f, %f)", p2_pix[0], p2_pix[1])));
@@ -210,12 +233,14 @@ pgast_cutout(PG_FUNCTION_ARGS) // (fits_header text, ra double, dec double, side
 			 PIXEL2WORLD,                  // non-zero == forward transform
 			 &p2_world[0], &p2_world[1]);  // transformed points (out)
 
+	cutout_require_good(p2_world, 2, "the point along the bottom edge");
 	astNorm(wcs_frames, p2_world);
 
 	//ereport(DEBUG1, (errmsg("p2_world: (%f, %f) rad, (%f, %f) deg", p2_world[0], p2_world[1], rad2deg(p2_world[0]), rad2deg(p2_world[1]))));
 		
 	// find x2_world as an offset from x1 to p2
 	astOffset(wcs_frames, x1_world, p2_world, -half_side_length, x2_world); // note the negative distance
+	cutout_require_good(x2_world, 2, "the corner of the box");
 	
 	//ereport(DEBUG1, (errmsg("x2_world: (%f, %f) rad, (%f, %f) deg", x2_world[0], x2_world[1], rad2deg(x2_world[0]), rad2deg(x2_world[1]))));
 	
@@ -224,6 +249,7 @@ pgast_cutout(PG_FUNCTION_ARGS) // (fits_header text, ra double, dec double, side
 			 &x2_world[0], &x2_world[1],   // untransformed points (in)
 			 WORLD2PIXEL,                  // non-zero == forward transform
 			 &x2_pix[0], &x2_pix[1]);      // transformed points (out)
+	cutout_require_good(x2_pix, 2, "the pixel position of the corner");
 
 	//ereport(DEBUG1, (errmsg("x2_pix  : (%f, %f)", x2_pix[0], x2_pix[1])));
 	
@@ -270,7 +296,9 @@ pgast_cutout(PG_FUNCTION_ARGS) // (fits_header text, ra double, dec double, side
 			 corners_pix_x, corners_pix_y,
 			 PIXEL2WORLD,
 			 corners_world_ra, corners_world_dec);
-	
+	cutout_require_good(corners_world_ra, 4, "a corner of the box");
+	cutout_require_good(corners_world_dec, 4, "a corner of the box");
+
 	// normalize
 	for (int i=0;i < 4; i++) {
 		// astNorm takes one value at a time, but we have
@@ -285,6 +313,35 @@ pgast_cutout(PG_FUNCTION_ARGS) // (fits_header text, ra double, dec double, side
 	//ereport(DEBUG1, (errmsg("corner1 = (%f, %f) rad, (%f, %f) deg", corners_world_ra[0], corners_world_dec[0],
 	//																rad2deg(corners_world_ra[0]), rad2deg(corners_world_dec[0]))));
 	
+	// Which side is the inside? The corners go round the box anticlockwise in
+	// pixel coordinates; on the sky that is anticlockwise or clockwise
+	// depending on the pixel parity, and AST takes the region to the left of
+	// the boundary as the inside (see AI/ast_polygon_orientation.md). Test the
+	// box centre and reverse the corners if it is outside.
+	{
+		double centre_x[1], centre_y[1], centre[2], box[8];
+		astTran2(wcs_frames, 1, &p0_pix[0], &p0_pix[1], PIXEL2WORLD, centre_x, centre_y);
+		centre[0] = centre_x[0];
+		centre[1] = centre_y[0];
+		cutout_require_good(centre, 2, "the centre of the box");
+		for (int i=0; i < 4; i++) {
+			box[i] = corners_world_ra[i];
+			box[4 + i] = corners_world_dec[i];
+		}
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wformat-zero-length"
+		AstPolygon *box_polygon = astPolygon(sky_frame, 4, 4, box, AST__NULL, "");
+#pragma GCC diagnostic pop
+		if (!astOK)
+			pgast_ast_error("pgAST error (pgast_cutout): AST could not build the cutout polygon.");
+		if (!astPointInRegion(box_polygon, centre)) {
+			for (int i=0, j=3; i < j; i++, j--) {
+				double t = corners_world_ra[i]; corners_world_ra[i] = corners_world_ra[j]; corners_world_ra[j] = t;
+				t = corners_world_dec[i]; corners_world_dec[i] = corners_world_dec[j]; corners_world_dec[j] = t;
+			}
+		}
+	}
+
 	// Allocate space for PostgreSQL polygon.
 	//
 	base_size = sizeof(pg_polygon->p[0]) * 4;

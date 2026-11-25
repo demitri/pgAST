@@ -58,6 +58,7 @@ pgast_bounding_polygon(text fits_header_as_string)
 pgast_point_in_polygon(float8 ra, float8 dec, polygon poly)
 pgast_point_in_polygon(float8 ra, float8 dec, text fits_header_string)
 pgast_icrs_polygon_overlaps_hdu(polygon icrs_polygon, text fits_header_as_string)
+pgast_cutout(text fits_header_as_string, float8 ra, float8 dec, float8 side_length_arcsec)
 ```
 
 
@@ -126,6 +127,16 @@ This function takes a PostgreSQL polygon, assumed to be in the ICRS coordinate s
 ```sql
 pgast_icrs_polygon_overlaps_hdu(polygon icrs_polygon, text fits_header_as_string)
 ```
+
+### `pgast_cutout`
+
+##### Return the polygon of a square cutout of a 2D image.
+
+```sql
+pgast_cutout(text fits_header_as_string, float8 ra, float8 dec, float8 side_length_arcsec)
+```
+
+Returns a four-vertex polygon around (ra, dec), in ICRS degrees, aligned with the image's pixel grid. The position is moved to the centre of the pixel that contains it, and the box is grown to whole pixels, so it is at least `side_length_arcsec` on each side. `NULL` is returned, with a WARNING, if the position is outside the image and has no pixel coordinates. An error is raised if the box extends beyond the region where the WCS is defined (for example past the limb of a SIN projection).
 
 ### `pgast_distance`
 

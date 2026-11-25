@@ -122,6 +122,14 @@ SELECT pgast_point_in_polygon(266.40499, -28.93617,
        pgast_point_in_polygon(266.40499, -28.91617,
            pgast_cutout(test_header_galactic(), 266.40499, -28.93617, 36.0)) AS cutout_0p02_north;
 
+-- pgast_cutout must describe the box, not the rest of the sky, at both
+-- pixel parities: a 36 arcsec box around the image centre contains the
+-- centre and not the antipode.
+SELECT name,
+       pgast_point_in_polygon(150.0, 2.0, pgast_cutout(header, 150.0, 2.0, 36.0)) AS cutout_centre,
+       pgast_point_in_polygon(330.0, -2.0, pgast_cutout(header, 150.0, 2.0, 36.0)) AS cutout_antipode
+FROM images ORDER BY name;
+
 -- An AST failure must raise an error, and must not leave AST's (global)
 -- error status set: if it did, every later call in the same session would
 -- silently do nothing. 'RA---QQQ' is not a FITS projection code.
@@ -131,5 +139,22 @@ SELECT pgast_point_in_polygon(266.40499, -28.93617,
 SELECT pgast_bounding_polygon(replace(test_header(150, 2, -0.001), '''RA---TAN''', '''RA---QQQ''')) IS NULL AS unknown_projection;
 SELECT pgast_bounding_polygon(replace(test_header(150, 2, -0.001), 'NAXIS1  =                  100', 'NAXIS1  =                ''abc''')) IS NULL AS malformed_naxis1;
 SELECT pgast_cutout(replace(test_header(150, 2, -0.001), '''RA---TAN''', '''RA---QQQ'''), 150.0, 2.0, 36.0) IS NULL AS cutout_unknown_projection;
+-- SIN projection centred on (0, 0) covers only the hemisphere within 90 deg
+-- of (0, 0); at 0.6366 deg/pixel its limb is 90 pixels from the centre. A
+-- 36 arcsec box at RA 80 (1.4 pixels inside the limb) must contain its
+-- centre; a 30 deg box there reaches about RA 95, beyond the limb, so its
+-- corners have no pixel coordinates: an error, not a polygon of infinities.
+CREATE FUNCTION test_header_sin() RETURNS text LANGUAGE sql IMMUTABLE AS $$
+    SELECT string_agg(rpad(card, 80), '' ORDER BY n)
+    FROM unnest(ARRAY['SIMPLE  =                    T', 'BITPIX  =                  -32', 'NAXIS   =                    2',
+                      'NAXIS1  =                  180', 'NAXIS2  =                  180',
+                      'CTYPE1  = ''RA---SIN''', 'CTYPE2  = ''DEC--SIN''',
+                      'CRPIX1  =                 90.5', 'CRPIX2  =                 90.5',
+                      'CRVAL1  =                  0.0', 'CRVAL2  =                  0.0',
+                      'CDELT1  =         -0.636619772', 'CDELT2  =          0.636619772', 'END'])
+         WITH ORDINALITY AS t(card, n)
+$$;
+SELECT pgast_point_in_polygon(80.0, 0.0, pgast_cutout(test_header_sin(), 80.0, 0.0, 36.0)) AS sin_small_box_near_limb;
+SELECT pgast_cutout(test_header_sin(), 80.0, 0.0, 108000.0) IS NULL AS sin_box_past_limb;
 SELECT pgast_point_in_polygon(150.0, 2.0, test_header(150, 2, -0.001)) AS centre_after_error;
 \set VERBOSITY default
