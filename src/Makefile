@@ -6,7 +6,11 @@ DATA = pgast--1.1.0.sql     # script files to install
 
 PGFILEDESC = "pgast - Starlink AST library extension for PostgreSQL"
 
-# REGRESS = pgast_test      # test script file (without extension)
+# Regression tests: src/test/sql/<name>.sql, expected output in src/test/expected/<name>.out.
+# Run with scripts/run_tests.sh (throwaway cluster), or `make installcheck` against an
+# installed extension.
+REGRESS = header_region
+REGRESS_OPTS = --inputdir=test --outputdir=test
 
 #  list of shared-library objects to be built from source files
 #MODULES = pgast            # C module file to build (i.e. pgast.o)

@@ -85,6 +85,14 @@ pgast_icrs_polygon_overlaps_hdu(PG_FUNCTION_ARGS) // (polygon a_polygon, text fi
 	// 5 - The Regions are identical to within their uncertainties.
 	// 6 - The second Region is the exact negation of the first Region to within their uncertainties.
 
+	if (overlap_value == 0) {
+		// Both regions are on the sky, so a failed mapping between them means
+		// AST failed; that is not the same as "no overlap".
+		astEnd;
+		ereport(ERROR, (errmsg("pgAST (pgast_icrs_polygon_overlaps_hdu): astOverlap could not compare the polygon "
+							   "with the region from the FITS header (AST status=%d).", astStatus)));
+	}
+
 	polygons_overlap = (overlap_value == 2 || overlap_value == 3 || overlap_value == 4 || overlap_value == 5);
 	
 	astEnd;

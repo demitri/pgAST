@@ -1,0 +1,7 @@
+# pg_regress output
+test/results/
+test/regression.diffs
+test/regression.out
+
+# Expected test output is source (the root .gitignore ignores *.out)
+!test/expected/*.out

@@ -384,69 +384,66 @@ AstPolygon* fitsheader2polygon(const char *header, int *npoints) //, double *pol
 
 //	ereport(DEBUG1, (errmsg("fitsheader2polygon: after pfree(points)")));
 
-	if (!astGetI(sky_frame_polygon, "Bounded")) {
-		astNegate(sky_frame_polygon);
-		ereport(DEBUG1, (errmsg("pgAST fitsheader2polygon: polygon was negated ('Bounded' was false).")));
-	}
-	
-	// The order in which the vertices are supplied to the polygon constructor above
-	// defines which side of the polygon boundary is the inside and which is the
-	// outside. Since we do not know the order of the points returned by the
-	// getregionpoints or boundarypointmesh methods, we check now that the
-	// central pixel in the FITS image is "inside" the polygon, and negate
-	// the polygon if it is not.
+	// Which side of the boundary is the inside?
 	//
+	// AST takes the inside of a Polygon to be the region to the LEFT of the
+	// boundary as the vertices are traversed in the order supplied, seen from
+	// inside the celestial sphere. The order of the mesh points above depends
+	// on the WCS (e.g. on the pixel parity), so the polygon just built may be
+	// the image footprint or the rest of the sky. ("Bounded" cannot tell the
+	// two apart: in current AST every Region on a SkyFrame is bounded.)
+	//
+	// Test the centre pixel. If it is outside, rebuild the polygon from the
+	// vertices in reverse order, which describes the other region. Reversing
+	// the vertices (rather than calling astNegate) keeps the vertex order
+	// meaningful on its own, so a polygon stored from pgast_bounding_polygon
+	// describes the same region when it is read back.
 	{
-		const double point_in[2] = { dim1 / 2., dim2 / 2. }; // point in center of polygon
-		//const double[1] y_in  = { dim2 / 2.};
-		double point_out[2];
-		//const double[1] y_out;
-		astTran2(wcs_frames,					// mapping
-				 1,								// number of points to be transformed
-				 &point_in[0], &point_out[1],	// untransformed points (in)
-				 1,								// non-zero == forward transform
-				 &point_out[0], &point_out[1]);	// transformed points (out)
-		
-		ereport(DEBUG1, (errmsg("pgAST (fitsheader2polygon): point in: (%f, %f), point out: (%f, %f)", point_in[0], point_in[1], point_out[0], point_out[1])));
+		const double pixel_x[1] = { (dim1 + 1) / 2.0 }; // FITS pixel centres run from 1 to NAXISn
+		const double pixel_y[1] = { (dim2 + 1) / 2.0 };
+		double centre_x[1], centre_y[1];
+		double centre[2];
 
-		if (astPointInRegion(sky_frame_polygon, point_out)) {
-			//astNegate(sky_frame_polygon); // normally the right thing to do, but not here (see below).
-			ereport(DEBUG1, (errmsg("pgAST fitsheader2polygon: polygon was negated (test point not in region).")));
-			{
-				// The center point of the FITS image is not contained by the resulting polygon.
-				// This means the resulting polygon is inverted (and contains most of the universe).
-				// Normally one can just call "astNegate", but this doesn't modify the points,
-				// it only sets a flag. If any method were to retrieve the points, they will still be in the original order.
-				// Below we allocate a new double* array, reverse the order of the points, and create a new polygon.
-				// The result is a region that covers the FITS file, not one that is the inverse of it.
-			
-				// invert polygon points
-				double *inverted_points = (double*)palloc(maxcoord * num_points * sizeof(double));
+		astTran2(wcs_frames,			// mapping: pixel (base) -> sky (current)
+				 1,						// number of points
+				 pixel_x, pixel_y,		// input (pixel) coordinates
+				 PIXEL2WORLD,			// forward transformation
+				 centre_x, centre_y);	// output (sky) coordinates
 
-				// structure of points array is: [ra1, ra2, ..., ran, dec1, dec2, ... decn]
+		if (!astOK || centre_x[0] == AST__BAD || centre_y[0] == AST__BAD) {
+			astEnd;
+			ereport(ERROR, (errmsg("pgAST (fitsheader2polygon): the WCS does not map the centre pixel (%.1f, %.1f) to the sky.",
+								   pixel_x[0], pixel_y[0])));
+		}
+		centre[0] = centre_x[0];
+		centre[1] = centre_y[0];
 
-				for (int i=0; i < num_points; i++) {
-					inverted_points[i] = points[num_points-i-1];
-					inverted_points[num_points+i] = points[num_points*maxcoord - i - 1];
-				}
-				
-				sky_frame_polygon = astAnnul(sky_frame_polygon); // not strictly necessary
+		if (!astPointInRegion(sky_frame_polygon, centre)) {
+			// structure of points array is: [ra1, ra2, ..., ran, dec1, dec2, ..., decn]
+			double *reversed_points = (double*)palloc(maxcoord * num_points * sizeof(double));
+			for (int i=0; i < num_points; i++) {
+				reversed_points[i] = points[num_points - 1 - i];
+				reversed_points[num_points + i] = points[2*num_points - 1 - i];
+			}
+
+			sky_frame_polygon = astAnnul(sky_frame_polygon);
 
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wformat-zero-length"
 #pragma GCC diagnostic ignored "-Wformat-security"
-				sky_frame_polygon = astPolygon(sky_frame,
-				                               num_points,
-				                               num_points,
-				                               inverted_points,
-				                               AST__NULL,
-				                               "");
+			sky_frame_polygon = astPolygon(sky_frame,
+										   num_points,
+										   num_points,
+										   reversed_points,
+										   AST__NULL,
+										   "");
 #pragma GCC diagnostic pop
+			pfree(reversed_points);
 
-				
-				ereport(DEBUG1, (errmsg("pgAST (fitsheader2polygon): point in region after inv: %d", astPointInRegion(sky_frame_polygon, point_out))));
-				
-				pfree(inverted_points);
+			if (!astOK || !astPointInRegion(sky_frame_polygon, centre)) {
+				astEnd;
+				ereport(ERROR, (errmsg("pgAST (fitsheader2polygon): neither vertex order gives a polygon that contains "
+									   "the centre pixel; the WCS is not well behaved over the image (AST status=%d).", astStatus)));
 			}
 		}
 	}

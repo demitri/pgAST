@@ -26,12 +26,26 @@ DROP EXTENSION pgast;
 CREATE EXTENSION pgast;
 ```
 
+pgAST has been tested with AST 9.2.14 and 9.5.0.
+
+## Running the Tests
+
+From the repository root:
+
+```bash
+AST=/usr/local/ast scripts/run_tests.sh
+```
+
+The script builds the extension, installs it into a temporary staging directory, starts a throwaway PostgreSQL cluster that loads it from there, and runs the `pg_regress` tests in `src/test/`. Nothing is installed into PostgreSQL itself, so no root access is needed. It requires PostgreSQL 18 or later; set `PG_CONFIG=/path/to/pg_config` to choose which installation to use. Against an installed extension, `make installcheck` (from `src`) runs the same tests.
+
 ## Documentation & API
 
 ### Data Types
 Note that many of these functions accept and return native PostgreSQL geometric types (i.e. *not* PostGIS), such as [Circles](https://www.postgresql.org/docs/current/datatype-geometric.html#DATATYPE-CIRCLE), [Polygons](https://www.postgresql.org/docs/current/datatype-geometric.html#DATATYPE-POLYGON), and [Points](https://www.postgresql.org/docs/current/datatype-geometric.html#id-1.5.7.16.5). A reference of geometric functions supported by the database for use with these objects can be found [here](https://www.postgresql.org/docs/12/functions-geometry.html).
 
 All geometries are on the celestial sphere and in the ICRS coordinate frame unless otherwise noted. Points of a polygon are connected by great circle segments.
+
+**Vertex order matters.** Following AST (and the IVOA STC convention), the inside of a polygon is the region to the *left* of its edges as the vertices are traversed in order, seen from inside the celestial sphere, where east is to the left when north is up. Polygons returned by `pgast_bounding_polygon` follow this. A polygon whose vertices run the other way describes the rest of the sky: for example `((149.99,1.99),(150.01,1.99),(150.01,2.01),(149.99,2.01))` does *not* contain (150, 2), while the same box listed as `((150.01,1.99),(149.99,1.99),(149.99,2.01),(150.01,2.01))` does.
 
 ### API
 
@@ -107,7 +121,7 @@ pgast_point_in_polygon(float8 ra, float8 dec, text fits_header_string)
 
 This function takes a PostgreSQL polygon, assumed to be in the ICRS coordinate system in degrees, and compares it to a polygon derived from the FITS header of a 2D image HDU. The FITS header provided is not required to also be in the ICRS coordinate system — the underlying AST code will perform any necessary transformation.
 
-`NULL` is returned if the FITS header is not of a 2D image with axis lengths at least 2, or if a WCS cannot be read from the header.
+`NULL` is returned if the FITS header is not of a 2D image with axis lengths at least 2. An error is raised if a WCS with a sky frame cannot be read from the header, if the image footprint does not contain its own centre pixel (an image covering more than half the sky, or a WCS that is not well behaved over the image), or if AST cannot compare the two regions.
 
 ```sql
 pgast_icrs_polygon_overlaps_hdu(polygon icrs_polygon, text fits_header_as_string)

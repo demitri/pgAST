@@ -66,6 +66,20 @@ pgast_bounding_polygon(PG_FUNCTION_ARGS) // (text fits_header_as_string)
 	
 	// returned array is [x1, x2, x3, ..., xn, y1, y2, y3, ... yn] in RADIANS
 	// --------------------------------------------------------------------------
+
+	// A PostgreSQL polygon has no "negated" flag: its vertex order alone must
+	// say which side is the inside (the left, seen from inside the sphere, as
+	// in AST). astGetRegionPoints returns the vertices as AST stores them,
+	// which for a negated Polygon describe the other region, so reverse them.
+	if (astGetI(sky_polygon, "Negated")) {
+		for (int i=0, j=npoints-1; i < j; i++, j--) {
+			double tx = points[i], ty = points[npoints + i];
+			points[i] = points[j];
+			points[npoints + i] = points[npoints + j];
+			points[j] = tx;
+			points[npoints + j] = ty;
+		}
+	}
 	
 	//ereport(DEBUG1, (errmsg("points[0] = %.5f, %.5f", points[0], points[1])));
 

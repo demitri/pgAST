@@ -2,7 +2,7 @@
 \echo Use "CREATE EXTENSION pgast" to load this file. \quit
 
 CREATE  OR REPLACE FUNCTION wcs_test() RETURNS integer
-AS '$libdir/pgast'
+AS 'MODULE_PATHNAME', 'wcs_test'
 LANGUAGE C IMMUTABLE STRICT;
 
 CREATE OR REPLACE FUNCTION pgast_point_in_polygon(double precision, double precision, text) RETURNS boolean
