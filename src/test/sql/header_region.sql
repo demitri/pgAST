@@ -130,5 +130,6 @@ SELECT pgast_point_in_polygon(266.40499, -28.93617,
 \set VERBOSITY terse
 SELECT pgast_bounding_polygon(replace(test_header(150, 2, -0.001), '''RA---TAN''', '''RA---QQQ''')) IS NULL AS unknown_projection;
 SELECT pgast_bounding_polygon(replace(test_header(150, 2, -0.001), 'NAXIS1  =                  100', 'NAXIS1  =                ''abc''')) IS NULL AS malformed_naxis1;
+SELECT pgast_cutout(replace(test_header(150, 2, -0.001), '''RA---TAN''', '''RA---QQQ'''), 150.0, 2.0, 36.0) IS NULL AS cutout_unknown_projection;
 SELECT pgast_point_in_polygon(150.0, 2.0, test_header(150, 2, -0.001)) AS centre_after_error;
 \set VERBOSITY default

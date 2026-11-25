@@ -134,17 +134,30 @@ pgast_cutout(PG_FUNCTION_ARGS) // (fits_header text, ra double, dec double, side
 			 WORLD2PIXEL,                  // non-zero == forward transform
 			 &p0_pix[0], &p0_pix[1]);      // transformed points (out)
 
+	if (!astOK) {
+		pgast_ast_end();
+		pgast_ast_error("pgAST error (pgast_cutout): could not transform the requested position to pixel coordinates.");
+	}
+
+	// A position that has no pixel coordinates (it maps to infinity, e.g. far
+	// outside the projection) is a deliberate NULL result, with a WARNING
+	// saying why, not an error.
 	if (p0_pix[0] == DBL_MAX || p0_pix[1] == DBL_MAX || p0_pix[0] == -DBL_MAX || p0_pix[1] == -DBL_MAX) {
 		// check if the point is in the provided region
 		int n_points;
 		AstPolygon *polygon = fitsheader2polygon(fits_header, &n_points);
+		if (polygon == AST__NULL) {
+			// not a 2D image (the documented NULL case of fitsheader2polygon)
+			pgast_ast_end();
+			PG_RETURN_NULL();
+		}
 		int in_region = astPointInRegion(polygon, p0_world);
 		if (in_region == 0) {
 			ereport(WARNING, (errmsg("pgAST: Provided point is outside provided polygon.")));
 		} else {
 			ereport(WARNING, (errmsg("pgAST: Infinity occurred in translating from world to pixel coords.")));
 		}
-		pgast_ast_end();
+		pgast_ast_end_checked();
 		PG_RETURN_NULL();
 	}
 

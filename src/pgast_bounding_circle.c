@@ -65,9 +65,7 @@ pgast_bounding_circle_header(PG_FUNCTION_ARGS) // (text fits_header)
 	//ereport(DEBUG1, (errmsg("pgast_bounding_circle_header: AST__BAD=%f", AST__BAD)));
 	//ereport(DEBUG1, (errmsg("pgast_bounding_circle_header: centre=(%f, %f)", centre[0], centre[1])));
 
-	
-	astShow(sky_polygon);
-	
+
 	//ereport(DEBUG1, (errmsg("%f", circle->radius)));
 	
 	circle->center.x = rad2deg(centre[0]);

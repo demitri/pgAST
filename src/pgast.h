@@ -35,6 +35,8 @@ extern int pgast_ast_depth;
 #define pgast_ast_end() \
 	do { astEnd; pgast_ast_depth--; } while (0)
 
+// For SQL entry points only: it closes every open context, so it must never
+// run inside code called from another pgAST function (use pgast_ast_begin).
 #define pgast_ast_enter() \
 	do { \
 		astClearStatus; \

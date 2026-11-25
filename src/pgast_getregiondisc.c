@@ -26,10 +26,14 @@ pgast_getregiondisc(PG_FUNCTION_ARGS)
 	astPutCards( fitschan, fits_header ); /* add all cards at once */
 
 	AstFrame *wcsinfo = astRead( fitschan );
-	
+	if (wcsinfo == AST__NULL) {
+		pgast_ast_end();
+		pgast_ast_error("pgAST error (pgast_getregiondisc): No valid WCS could be read from the provided header.");
+	}
+
 	int32_t is_sky_frame = astIsASkyFrame(wcsinfo);
-	
-	pgast_ast_end();
+
+	pgast_ast_end_checked();
 
 	PG_RETURN_INT32(is_sky_frame);
 }
