@@ -48,9 +48,7 @@ AstFitsChan* cstring2fitsChan(const char *header)
 	//ereport(DEBUG1,  (errmsg("header:\n%s", header)));
 	
 	if (!astOK) {
-		printf("pgAST error (fitsheader2polygon): An error occurred when reading the FITS header (status=%d).\n", astStatus);
-		astEnd;
-		return AST__NULL;
+		pgast_ast_error("pgAST error (cstring2fitsChan): An error occurred when reading the FITS header.");
 	}
 
 	// rewind the FitsChan, see section 16.4 in sun211.pdf

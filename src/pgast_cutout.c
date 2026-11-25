@@ -102,9 +102,8 @@ pgast_cutout(PG_FUNCTION_ARGS) // (fits_header text, ra double, dec double, side
 	wcs_frames = astRead(fitsChan);
 	
 	if (wcs_frames == AST__NULL) {
-		ereport(ERROR, (errmsg("pgAST error (pgast_cutout): No valid WCS could be read from the provided header (AST status=%d).", astStatus)));
 		astEnd;
-		PG_RETURN_NULL();
+		pgast_ast_error("pgAST error (pgast_cutout): No valid WCS could be read from the provided header.");
 	}
 
 	// The resulting object contains two frames:
@@ -112,9 +111,8 @@ pgast_cutout(PG_FUNCTION_ARGS) // (fits_header text, ra double, dec double, side
 	//pixel_frame = astGetFrame(wcs_frames, AST__BASE); // not needed, here if it is later
 	sky_frame = astGetFrame(wcs_frames, AST__CURRENT);
 	if (sky_frame == AST__NULL || astIsASkyFrame(sky_frame) == 0) { // returns 1 if yes, 0 if no
-		ereport(ERROR, (errmsg("pgAST error (pgast_cutout): The provided WCS does not contain a sky frame.")));
 		astEnd;
-		PG_RETURN_NULL();
+		pgast_ast_error("pgAST error (pgast_cutout): The provided WCS does not contain a sky frame.");
 	}
 	// ---------------------------------------------
 

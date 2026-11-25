@@ -49,7 +49,12 @@ pgast_bounding_circle_header(PG_FUNCTION_ARGS) // (text fits_header)
 	
 	// returns the centre and radius of a disc that just encloses the supplied 2-dimensional Region
 	astGetRegionDisc(sky_polygon, centre, &(circle->radius));
-	
+
+	if (!astOK) {
+		astEnd;
+		pgast_ast_error("pgAST error (pgast_bounding_circle_header): astGetRegionDisc failed.");
+	}
+
 	if (circle->radius == AST__BAD) {
 		// error: the region is unbounded
 		ereport(DEBUG1, (errmsg("pgast_bounding_circle_header: supplied region is unbounded")));
@@ -61,11 +66,6 @@ pgast_bounding_circle_header(PG_FUNCTION_ARGS) // (text fits_header)
 	//ereport(DEBUG1, (errmsg("pgast_bounding_circle_header: AST__BAD=%f", AST__BAD)));
 	//ereport(DEBUG1, (errmsg("pgast_bounding_circle_header: centre=(%f, %f)", centre[0], centre[1])));
 
-	if (!astOK) {
-		ereport(DEBUG1, (errmsg("pgast_bounding_circle_header: bad astGetRegionDisc %f", circle->radius)));
-		astEnd;
-		PG_RETURN_NULL();
-	}
 	
 	astShow(sky_polygon);
 	

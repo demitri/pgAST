@@ -98,3 +98,13 @@ SELECT pgast_point_in_polygon(0.0,   0.0, test_header_big()) AS centre,
        pgast_point_in_polygon(180.0, 0.0, test_header_big()) AS in_gap,
        pgast_point_in_polygon(0.0,   0.0, pgast_bounding_polygon(test_header_big())) AS polygon_centre,
        pgast_point_in_polygon(180.0, 0.0, pgast_bounding_polygon(test_header_big())) AS polygon_in_gap;
+
+-- An AST failure must raise an error, and must not leave AST's (global)
+-- error status set: if it did, every later call in the same session would
+-- silently do nothing. 'RA---QQQ' is not a FITS projection code.
+-- (Terse verbosity: the AST status number in the error detail is not part of
+-- what is tested.)
+\set VERBOSITY terse
+SELECT pgast_bounding_polygon(replace(test_header(150, 2, -0.001), '''RA---TAN''', '''RA---QQQ''')) IS NULL AS unknown_projection;
+SELECT pgast_point_in_polygon(150.0, 2.0, test_header(150, 2, -0.001)) AS centre_after_error;
+\set VERBOSITY default

@@ -61,11 +61,15 @@ static AST libraries; the 9.5.0 build produces the same set.
 
 ## Conventions
 
-- Fail loud: an AST failure is an `ereport(ERROR, ...)`, not `NULL`, `false`
-  or a DEBUG log line. The README documents the few deliberate `NULL`
-  returns (a header that is not a 2D image, or has no WCS); keep that list
-  and the code in step.
-- Before an `ereport(ERROR, ...)` inside an `astBegin` block, call `astEnd`.
+- Fail loud: an AST failure is an error, not `NULL`, `false` or a DEBUG log
+  line. The README documents the deliberate `NULL` returns (a header that is
+  not a 2D image with both axes at least 2 pixels long); keep that list and
+  the code in step.
+- AST failures are raised with `pgast_ast_error(...)` (`src/pgast.h`), never a
+  bare `ereport(ERROR, ...)`: AST's error status is global to the backend, and
+  if an error leaves it set, every later AST call in that session silently
+  does nothing. The macro clears it. Call `astEnd` for the current AST
+  context first, because nothing after the error runs.
 - Polygon orientation: see `AI/ast_polygon_orientation.md`. Any code that
   builds an AstPolygon from vertices it did not choose must decide the
   inside explicitly.

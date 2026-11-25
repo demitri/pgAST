@@ -89,8 +89,8 @@ pgast_icrs_polygon_overlaps_hdu(PG_FUNCTION_ARGS) // (polygon a_polygon, text fi
 		// Both regions are on the sky, so a failed mapping between them means
 		// AST failed; that is not the same as "no overlap".
 		astEnd;
-		ereport(ERROR, (errmsg("pgAST (pgast_icrs_polygon_overlaps_hdu): astOverlap could not compare the polygon "
-							   "with the region from the FITS header (AST status=%d).", astStatus)));
+		pgast_ast_error("pgAST (pgast_icrs_polygon_overlaps_hdu): astOverlap could not compare the polygon "
+						"with the region from the FITS header.");
 	}
 
 	polygons_overlap = (overlap_value == 2 || overlap_value == 3 || overlap_value == 4 || overlap_value == 5);

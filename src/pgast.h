@@ -18,4 +18,20 @@
 
 #include "ast.h"
 
+/*
+ Raise a PostgreSQL ERROR for a failure inside AST code.
+
+ AST's error status is global to the backend. ereport(ERROR) longjmps out of
+ the function, so if the status is left set, every AST call made later in the
+ same session does nothing and the functions return NULL or garbage. This
+ records the status, clears it, then raises. Call astEnd for the current AST
+ context first (code after ereport(ERROR) never runs).
+*/
+#define pgast_ast_error(...) \
+	do { \
+		int pgast_ast_status_ = astStatus; \
+		astClearStatus; \
+		ereport(ERROR, (errmsg(__VA_ARGS__), errdetail("AST status: %d", pgast_ast_status_))); \
+	} while (0)
+
 #endif /* __PGAST2_H__ */
