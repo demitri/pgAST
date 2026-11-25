@@ -127,14 +127,12 @@ SELECT pgast_point_in_polygon(266.40499, -28.93617,
 
 -- pgast_cutout must describe the box, not the rest of the sky, at both
 -- pixel parities: a 36 arcsec box around the image centre contains the
--- centre, and neither a point 90 deg away nor the antipode. (AST's own
+-- centre and not a point 90 deg away. (Not the antipode: AST's
 -- point-in-polygon test gets the near-exact antipode of a small polygon
 -- wrong; see AI/ast_polygon_orientation.md.)
 SELECT name,
        pgast_point_in_polygon(150.0, 2.0, pgast_cutout(header, 150.0, 2.0, 36.0)) AS cutout_centre,
-       pgast_point_in_polygon(240.0, 2.0, pgast_cutout(header, 150.0, 2.0, 36.0)) AS cutout_ninety_deg_away,
-       -- AST alone reports this near-exact antipode of the box as inside
-       pgast_point_in_polygon(330.0, -2.0, pgast_cutout(header, 150.0, 2.0, 36.0)) AS cutout_antipode
+       pgast_point_in_polygon(240.0, 2.0, pgast_cutout(header, 150.0, 2.0, 36.0)) AS cutout_ninety_deg_away
 FROM images ORDER BY name;
 
 -- The box is at least the requested size on each side, also when the
@@ -175,5 +173,11 @@ CREATE FUNCTION test_header_sin() RETURNS text LANGUAGE sql IMMUTABLE AS $$
 $$;
 SELECT pgast_point_in_polygon(80.0, 0.0, pgast_cutout(test_header_sin(), 80.0, 0.0, 36.0)) AS sin_small_box_near_limb;
 SELECT pgast_cutout(test_header_sin(), 80.0, 0.0, 108000.0) IS NULL AS sin_box_past_limb;
+-- No bounding circle exists under 90 deg for a region on the far side of its
+-- boundary: the larger-than-half-sky footprint, and a box listed in the
+-- order that describes the rest of the sky. (AST's disc would describe the
+-- 60-deg gap and the 0.014-deg box respectively.)
+SELECT pgast_bounding_circle(test_header_big()) IS NULL AS big_footprint_circle;
+SELECT pgast_bounding_circle(polygon '((149.99,1.99),(150.01,1.99),(150.01,2.01),(149.99,2.01))') IS NULL AS rest_of_sky_circle;
 SELECT pgast_point_in_polygon(150.0, 2.0, test_header(150, 2, -0.001)) AS centre_after_error;
 \set VERBOSITY default

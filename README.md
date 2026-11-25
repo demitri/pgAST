@@ -49,6 +49,8 @@ All geometries are on the celestial sphere and in the ICRS coordinate frame unle
 
 PostgreSQL's own geometric operators (`&&`, `@>`, `box(polygon)`, ...) work on these polygons but are planar in (RA, Dec), not spherical: they are wrong for polygons that cross RA = 0 or contain a pole. Use the pgAST functions for tests on the sky.
 
+**Known limitation:** `pgast_point_in_polygon` can report the near-exact antipode of a small polygon (the point on the opposite side of the sky) as inside it. This comes from the AST library's point-in-polygon test; points even a fraction of a degree away are classified correctly.
+
 ### API
 
 The functions defined by this extension are:
@@ -68,7 +70,7 @@ pgast_cutout(text fits_header_as_string, float8 ra, float8 dec, float8 side_leng
 
 ##### Returns the minimum bounding circle of a 2D image or a polygon.
 
-This function has two signatures; it accepts a `text` value of a FITS header or a PostgreSQL Polygon object.
+This function has two signatures; it accepts a `text` value of a FITS header or a PostgreSQL Polygon object. An error is raised for a region that has no bounding circle smaller than a hemisphere: a footprint larger than half the sky, or a polygon whose vertex order describes the rest of the sky.
 
 ```sql
 pgast_bounding_circle(polygon)

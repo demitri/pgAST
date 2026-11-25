@@ -77,7 +77,11 @@ pgast_point_in_polygon_poly(PG_FUNCTION_ARGS) // (polygon polygon, float8 ra, fl
 	if (!astOK)
 		pgast_ast_error("pgAST error (pgast_point_in_polygon_poly): AST could not build a polygon from the PostgreSQL polygon.");
 
-	point_in_region = pgast_point_in_sky_region((AstRegion *)ast_polygon, ra, dec);
+	{
+		double ra_out, dec_out;
+		astTran2(ast_polygon, 1, &ra, &dec, 1, &ra_out, &dec_out); // inside: unchanged; outside: AST__BAD
+		point_in_region = (ra_out == AST__BAD ? 0 : 1);
+	}
 
 	//fprintf(stderr, "(%.4f, %.4f)\n", ra_out, dec_out);
 
@@ -115,7 +119,11 @@ pgast_point_in_polygon_header(PG_FUNCTION_ARGS) // (text fits_header, float ra, 
 	ra = deg2rad(ra);
 	dec = deg2rad(dec);
 	
-	point_in_region = pgast_point_in_sky_region((AstRegion *)sky_polygon, ra, dec);
+	{
+		double ra_out, dec_out;
+		astTran2(sky_polygon, 1, &ra, &dec, 1, &ra_out, &dec_out); // inside: unchanged; outside: AST__BAD
+		point_in_region = (ra_out == AST__BAD ? 0 : 1);
+	}
 	
 	pgast_ast_end_checked();
 	

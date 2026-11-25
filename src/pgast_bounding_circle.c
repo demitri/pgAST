@@ -46,19 +46,8 @@ pgast_bounding_circle_header(PG_FUNCTION_ARGS) // (text fits_header)
 	//ereport(DEBUG1, (errmsg("pgast_bounding_circle_header: astOK ? %d", astOK)));
 	//ereport(DEBUG1, (errmsg("pgast_bounding_circle_header: sky_polygon bounded? %d", astGetI(sky_polygon, "Bounded"))));
 	
-	// returns the centre and radius of a disc that just encloses the supplied 2-dimensional Region
-	astGetRegionDisc(sky_polygon, centre, &(circle->radius));
-
-	if (!astOK) {
-		pgast_ast_end();
-		pgast_ast_error("pgAST error (pgast_bounding_circle_header): astGetRegionDisc failed.");
-	}
-
-	if (circle->radius == AST__BAD) {
-		// A region on the sky is always bounded, so this is an AST failure.
-		pgast_ast_end();
-		pgast_ast_error("pgAST error (pgast_bounding_circle_header): astGetRegionDisc returned no radius.");
-	}
+	// centre and radius of a disc that encloses the region (raises if there is none under 90 deg)
+	pgast_region_bounding_disc((AstRegion *)sky_polygon, centre, &(circle->radius), "pgast_bounding_circle_header");
 	
 	//ereport(DEBUG1, (errmsg("pgast_bounding_circle_header: radius=%f", circle->radius)));
 	//ereport(DEBUG1, (errmsg("pgast_bounding_circle_header: AST__BAD=%f", AST__BAD)));
@@ -125,9 +114,7 @@ pgast_bounding_circle_polygon(PG_FUNCTION_ARGS) // (polygon polygon)
 		pgast_ast_error("pgAST error (pgast_bounding_circle_polygon): AST could not build a polygon from the PostgreSQL polygon.");
 	}
 
-	astGetRegionDisc(ast_polygon, centre, &(circle->radius));
-	if (!astOK || circle->radius == AST__BAD)
-		pgast_ast_error("pgAST error (pgast_bounding_circle_polygon): astGetRegionDisc failed.");
+	pgast_region_bounding_disc((AstRegion *)ast_polygon, centre, &(circle->radius), "pgast_bounding_circle_polygon");
 
 	circle->center.x = rad2deg(centre[0]);
 	circle->center.y = rad2deg(centre[1]);

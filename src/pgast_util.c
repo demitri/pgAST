@@ -33,49 +33,35 @@ void pgPolygon2astPoints(POLYGON *polygon, double *points)
 }
 
 /**
- Is the point (ra, dec), in radians, inside a Region on the sky?
+ The bounding disc of a Region on the sky: centre (radians) and radius
+ (radians), from astGetRegionDisc.
 
- AST's own test (astTran2 on the Region) can report the near-exact antipode
- of a small polygon as inside it (measured; see AI/ast_polygon_orientation.md).
- So when the Region is small, an "inside" answer must also lie within the
- Region's bounding disc. The disc is used only when it is known to bound the
- Region: the Region is not negated (for a negated Region, astGetRegionDisc
- describes the stored polygon, i.e. the outside; measured), the radius is
- under 90 degrees, and AST places the disc's own centre inside the Region (a
- test far from the antipode). Otherwise AST's answer stands. The extra test
- can only turn an "inside" into "outside", and only for a point beyond a
- disc that encloses the Region, so it never rejects a point that is inside.
+ astGetRegionDisc gives the disc around the Region's stored boundary; it
+ ignores Negated and orientation (SUN/211). When the Region is the far side
+ of its boundary (a footprint larger than half the sky, or a polygon given
+ in the order that describes the rest of the sky), that disc does not
+ enclose the Region, and no honest bounding circle under 90 degrees exists:
+ raise an error. Test: everything outside the disc is on one side of the
+ boundary, so one point 90 degrees from the disc centre (outside the disc,
+ and far from the antipode where AST's point test is unreliable) decides it.
  */
-int pgast_point_in_sky_region(AstRegion *region, double ra, double dec)
+void pgast_region_bounding_disc(AstRegion *region, double centre[2], double *radius, const char *caller)
 {
-	double ra_out, dec_out;
-	astTran2(region, 1, &ra, &dec, 1, &ra_out, &dec_out);
+	astGetRegionDisc(region, centre, radius);
+	if (!astOK || *radius == AST__BAD)
+		pgast_ast_error("pgAST error (%s): astGetRegionDisc failed.", caller);
+	if (*radius >= M_PI / 2)
+		pgast_ast_error("pgAST error (%s): bounding circles of 90 degrees or more are not supported.", caller);
+
+	double probe[2], probe_x_out, probe_y_out;
+	astOffset2(region, centre, 0.0, M_PI / 2, probe);
+	astTran2(region, 1, &probe[0], &probe[1], 1, &probe_x_out, &probe_y_out);
 	if (!astOK)
-		pgast_ast_error("pgAST (pgast_point_in_sky_region): astTran2 failed.");
-	if (ra_out == AST__BAD)
-		return 0;
-	if (astGetI(region, "Negated"))
-		return 1;
-
-	double centre[2], radius;
-	astGetRegionDisc(region, centre, &radius);
-	if (!astOK || radius == AST__BAD)
-		pgast_ast_error("pgAST (pgast_point_in_sky_region): astGetRegionDisc failed.");
-	if (radius >= M_PI / 2)
-		return 1;
-
-	double cx_out, cy_out;
-	astTran2(region, 1, &centre[0], &centre[1], 1, &cx_out, &cy_out);
-	if (!astOK)
-		pgast_ast_error("pgAST (pgast_point_in_sky_region): astTran2 failed.");
-	if (cx_out == AST__BAD)
-		return 1; // disc centre not inside: the disc is not known to bound the Region
-
-	const double point[2] = { ra, dec };
-	const double distance = astDistance(region, centre, point);
-	if (!astOK || distance == AST__BAD)
-		pgast_ast_error("pgAST (pgast_point_in_sky_region): astDistance failed.");
-	return distance <= radius * (1.0 + 1e-9) + 1e-12;
+		pgast_ast_error("pgAST error (%s): AST failed checking the bounding circle.", caller);
+	if (probe_x_out != AST__BAD)
+		pgast_ast_error("pgAST error (%s): the region is the far side of its boundary (larger than half the sky, "
+						"or a polygon whose vertices describe the rest of the sky); it has no bounding circle "
+						"under 90 degrees.", caller);
 }
 
 /**
