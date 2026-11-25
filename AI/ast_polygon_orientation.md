@@ -67,13 +67,21 @@ inside.
   smaller region, or require the AST order and reject the other) is the open
   decision on GitHub issue #1.
 
-## AST quirk: the exact antipode
+## AST quirk: the near-exact antipode
 
-`astPointInRegion` (and so `pgast_point_in_polygon`) is unreliable at the
-**exact antipode** of a small polygon. Every great circle through that point
-also passes through the polygon, so a spherical point-in-polygon test is
-ill-defined there. Measured 2026-11-25, AST 9.2.14 and 9.5.0: a 43-arcsec
-cutout box around (150, 2) "contained" both its centre and (330, -2), while
-(329, -2), a point 90 degrees away and one 58 degrees north were all
-outside. Tests use a point 90 degrees away, not the antipode, as the
-far-away point.
+AST's point-in-polygon test (`astTran2` on the Region, and `astPointInRegion`)
+can report the near-exact antipode of a small polygon as inside it. The
+geometry is well defined there (the antipode of a small box is plainly
+outside); the fault is in AST's implementation. Measured 2026-11-25 under AST
+9.2.14 and 9.5.0: for a 43-arcsec cutout box around (150, 2), AST reported
+(330, -2) as inside. On a 0.01-degree grid of 81 points over the box's
+antipodal image, that was the only such point, and points 1 degree from it
+were outside.
+
+`pgast_point_in_sky_region` (`pgast_util.c`), used by `pgast_point_in_polygon`,
+corrects for it: for a small, un-negated Region whose bounding disc
+demonstrably contains it, an "inside" answer must also lie within that disc.
+`astGetRegionDisc` describes the *stored* polygon even when the Region is
+negated (measured), which is why negated Regions are excluded. Tests use a
+point 90 degrees away as their far-away point, plus one antipode case that
+covers the correction.

@@ -47,6 +47,8 @@ All geometries are on the celestial sphere and in the ICRS coordinate frame unle
 
 **Vertex order matters.** Following AST (and the IVOA STC convention), the inside of a polygon is the region to the *left* of its edges as the vertices are traversed in order, seen from inside the celestial sphere, where east is to the left when north is up. Polygons returned by `pgast_bounding_polygon` follow this. A polygon whose vertices run the other way describes the rest of the sky: for example `((149.99,1.99),(150.01,1.99),(150.01,2.01),(149.99,2.01))` does *not* contain (150, 2), while the same box listed as `((150.01,1.99),(149.99,1.99),(149.99,2.01),(150.01,2.01))` does.
 
+PostgreSQL's own geometric operators (`&&`, `@>`, `box(polygon)`, ...) work on these polygons but are planar in (RA, Dec), not spherical: they are wrong for polygons that cross RA = 0 or contain a pole. Use the pgAST functions for tests on the sky.
+
 ### API
 
 The functions defined by this extension are:

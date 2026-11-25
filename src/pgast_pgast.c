@@ -46,7 +46,6 @@ pgast_point_in_polygon_poly(PG_FUNCTION_ARGS) // (polygon polygon, float8 ra, fl
 	// internal variables
 	// ------------------
 	int point_in_region;
-	double ra_out, dec_out;
 	Point *points = polygon->p;
 	int n_vert = polygon->npts; // number of vertices/coordinate pairs (i.e. Point)
 	
@@ -54,7 +53,6 @@ pgast_point_in_polygon_poly(PG_FUNCTION_ARGS) // (polygon polygon, float8 ra, fl
 	//  [x1, x2, x3, ..., xn, y1, y2, y3, ..., yn]
 	double *points_array = (double*)palloc(n_vert * 2 * sizeof(double));
 	for (int i=0; i < n_vert; i++) {
-		fprintf(stderr, "p%d: (%0.4f, %0.4f)\n", i, (points[i]).x, (points[i]).y);
 		points_array[i] = deg2rad((points[i]).x);
 		points_array[n_vert + i] = deg2rad((points[i]).y);
 	}
@@ -76,17 +74,10 @@ pgast_point_in_polygon_poly(PG_FUNCTION_ARGS) // (polygon polygon, float8 ra, fl
 	ra = deg2rad(ra);
 	dec = deg2rad(dec);
 
-	// test if point is in polygon
-	//
-	astTran2(ast_polygon,	// region as mapping (will be a unit map)
-			 1, 		// npoints to be transformed
-			 &ra,		// An array of "npoint" X-coordinate values for the input (untransformed) points
-			 &dec,		// An array of "npoint" Y-coordinate values for the input (untransformed) points
-			 1,			// forward = 1, inverse = 0
-			 &ra_out,	// array with npoint elements for output
-			 &dec_out);	// array with npoint elements for output
-	
-	point_in_region = (ra_out == AST__BAD ? 0 : 1);
+	if (!astOK)
+		pgast_ast_error("pgAST error (pgast_point_in_polygon_poly): AST could not build a polygon from the PostgreSQL polygon.");
+
+	point_in_region = pgast_point_in_sky_region((AstRegion *)ast_polygon, ra, dec);
 
 	//fprintf(stderr, "(%.4f, %.4f)\n", ra_out, dec_out);
 
@@ -107,7 +98,6 @@ pgast_point_in_polygon_header(PG_FUNCTION_ARGS) // (text fits_header, float ra, 
 	// internal variables
 	int npoints;
 	int point_in_region;
-	double ra_out, dec_out;
 	
 	//ereport(DEBUG5, (errmsg("pgast_point_in_polygon_header called")));
 	//fprintf(stderr, "\nread: (%.4f, %.4f) %s\n", ra, dec, fits_header);
@@ -125,17 +115,7 @@ pgast_point_in_polygon_header(PG_FUNCTION_ARGS) // (text fits_header, float ra, 
 	ra = deg2rad(ra);
 	dec = deg2rad(dec);
 	
-	// test if point is in polygon
-	//
-	astTran2(sky_polygon,	// region as mapping (will be a unit map)
-			 1, 			// npoints to be transformed
-			 &ra,			// An array of "npoint" X-coordinate values for the input (untransformed) points
-			 &dec,			// An array of "npoint" Y-coordinate values for the input (untransformed) points
-			 1,				// forward = 1, inverse = 0
-			 &ra_out,		// array with npoint elements for output
-			 &dec_out);		// array with npoint elements for output
-	
-	point_in_region = (ra_out == AST__BAD ? 0 : 1);
+	point_in_region = pgast_point_in_sky_region((AstRegion *)sky_polygon, ra, dec);
 	
 	pgast_ast_end_checked();
 	

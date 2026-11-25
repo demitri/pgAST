@@ -155,17 +155,19 @@ SELECT pgast_point_in_polygon(266.40499, -28.93617,
 
 -- pgast_cutout must describe the box, not the rest of the sky, at both
 -- pixel parities: a 36 arcsec box around the image centre contains the
--- centre and not a point 90 deg away. (Not the antipode: AST's
--- point-in-polygon test is unreliable at the exact antipode of a small
--- polygon; see AI/ast_polygon_orientation.md.)
+-- centre, and neither a point 90 deg away nor the antipode. (AST's own
+-- point-in-polygon test gets the near-exact antipode of a small polygon
+-- wrong; see AI/ast_polygon_orientation.md.)
 SELECT name,
        pgast_point_in_polygon(150.0, 2.0, pgast_cutout(header, 150.0, 2.0, 36.0)) AS cutout_centre,
-       pgast_point_in_polygon(240.0, 2.0, pgast_cutout(header, 150.0, 2.0, 36.0)) AS cutout_ninety_deg_away
+       pgast_point_in_polygon(240.0, 2.0, pgast_cutout(header, 150.0, 2.0, 36.0)) AS cutout_ninety_deg_away,
+       -- AST alone reports this near-exact antipode of the box as inside
+       pgast_point_in_polygon(330.0, -2.0, pgast_cutout(header, 150.0, 2.0, 36.0)) AS cutout_antipode
 FROM images ORDER BY name;
-   name    | cutout_centre | cutout_ninety_deg_away 
------------+---------------+------------------------
- east_left | t             | f
- mirrored  | t             | f
+   name    | cutout_centre | cutout_ninety_deg_away | cutout_antipode 
+-----------+---------------+------------------------+-----------------
+ east_left | t             | f                      | f
+ mirrored  | t             | f                      | f
 (2 rows)
 
 -- The box is at least the requested size on each side, also when the

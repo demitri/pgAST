@@ -33,6 +33,52 @@ void pgPolygon2astPoints(POLYGON *polygon, double *points)
 }
 
 /**
+ Is the point (ra, dec), in radians, inside a Region on the sky?
+
+ AST's own test (astTran2 on the Region) can report the near-exact antipode
+ of a small polygon as inside it (measured; see AI/ast_polygon_orientation.md).
+ So when the Region is small, an "inside" answer must also lie within the
+ Region's bounding disc. The disc is used only when it is known to bound the
+ Region: the Region is not negated (for a negated Region, astGetRegionDisc
+ describes the stored polygon, i.e. the outside; measured), the radius is
+ under 90 degrees, and AST places the disc's own centre inside the Region (a
+ test far from the antipode). Otherwise AST's answer stands. The extra test
+ can only turn an "inside" into "outside", and only for a point beyond a
+ disc that encloses the Region, so it never rejects a point that is inside.
+ */
+int pgast_point_in_sky_region(AstRegion *region, double ra, double dec)
+{
+	double ra_out, dec_out;
+	astTran2(region, 1, &ra, &dec, 1, &ra_out, &dec_out);
+	if (!astOK)
+		pgast_ast_error("pgAST (pgast_point_in_sky_region): astTran2 failed.");
+	if (ra_out == AST__BAD)
+		return 0;
+	if (astGetI(region, "Negated"))
+		return 1;
+
+	double centre[2], radius;
+	astGetRegionDisc(region, centre, &radius);
+	if (!astOK || radius == AST__BAD)
+		pgast_ast_error("pgAST (pgast_point_in_sky_region): astGetRegionDisc failed.");
+	if (radius >= M_PI / 2)
+		return 1;
+
+	double cx_out, cy_out;
+	astTran2(region, 1, &centre[0], &centre[1], 1, &cx_out, &cy_out);
+	if (!astOK)
+		pgast_ast_error("pgAST (pgast_point_in_sky_region): astTran2 failed.");
+	if (cx_out == AST__BAD)
+		return 1; // disc centre not inside: the disc is not known to bound the Region
+
+	const double point[2] = { ra, dec };
+	const double distance = astDistance(region, centre, point);
+	if (!astOK || distance == AST__BAD)
+		pgast_ast_error("pgAST (pgast_point_in_sky_region): astDistance failed.");
+	return distance <= radius * (1.0 + 1e-9) + 1e-12;
+}
+
+/**
  Fill in the bounding box of a PostgreSQL polygon from its points, as
  PostgreSQL's own polygon input does (make_bound_box in geo_ops.c, which is
  not exported). PostgreSQL's polygon operators (&&, @>, box(polygon), ...)
