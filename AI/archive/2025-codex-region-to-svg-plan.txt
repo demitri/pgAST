@@ -1,0 +1,86 @@
+▌ An earlier chat made the suggestion below. Plan how to implement this functionality. I would like to be able to have a
+▌ Python web app use another API to retrieve FITS images, make cutout, and use this plug-in to overlay an ra/dec
+▌ projection on it.
+▌
+▌ AST can render Region outlines in specific projections (Aitoff, Mollweide, etc.). Wrapping this into a
+▌ pgast_region_to_svg(region, projection TEXT) lets you embed lightweight footprint plots in web dashboards straight from
+▌ SQL.
+▌ Example: a data curator reviewing coverage of a custom survey can query and visualize overlaps without leaving the
+▌ database interface.
+
+> Thinking
+  I'm laying out a detailed plan to implement a function that converts AST region data and projections into SVG outlines,
+  integrating it into the existing extension and a Python web app pipeline. I want to explore AST’s projection handling,
+  polygon conversion, and outline extraction with astOutline or coordinate transforms, then use this to drive a new SQL
+  function and overlay it in the web app from FITS cutouts. I’ll break down the tasks into understanding AST projections,
+  coding the new function with proper polygon and projection mapping, and finally integrating everything on the web app
+  side. Let’s make this plan clear and stepwise for smooth implementation!
+
+> Implementation Plan: pgast_region_to_svg
+
+  - Define Scope
+      - Input: region supplied either as a PostgreSQL polygon (ICRS degrees) or FITS header text (reuse
+  fitsheader2polygon). Start with the polygon form to keep the surface area small; add a header overload later if needed.
+      - Output: SVG snippet (TEXT) describing the projected outline (single <path> plus optional metadata).
+  - Extend C Layer
+      - Add a new source (src/pgast_region_to_svg.c) with two PG wrappers:
+          - pgast_region_to_svg(polygon, text projection) (initial implementation).
+          - Optionally later: pgast_region_to_svg(text fits_header, text projection) that calls fitsheader2polygon.
+      - Reuse pgPolygon2astPolygon to convert the input polygon into an AstPolygon in ICRS.
+      - Build a target sky frame for the requested projection:
+          - Create an AstSkyFrame with attributes System=ICRS, Equinox=J2000, Projection=<code>.
+          - Validate the projection string against a whitelist (AITOFF, MOLLWEIDE, TAN, etc.); map user-friendly names to
+  AST tokens.
+          - Use astFrameSet/astConvert (or astCmpFrame + astMapRegion) to produce a mapping from ICRS to the projected
+  2D frame.
+      - Sample the region boundary:
+          - Call astGetRegionPoints or astOutline to obtain boundary vertices in radians.
+          - Transform those points through the projection map with astTran2 to get projected plane coordinates.
+          - Normalize/scale coordinates to a convenient SVG viewport (e.g. compute min/max, translate to positive space,
+  decide on viewBox dimensions).
+      - Serialize SVG:
+          - Generate a <svg viewBox="0 0 width height"><path d="M x y L ... Z" /></svg> string using psprintf.
+          - Optionally include metadata attributes (projection name, RA/Dec center) for debugging.
+      - Guard AST errors: on failure, raise ereport(ERROR, ...) with informative messages (invalid projection, unbounded
+  region, etc.).
+      - Add headers/exports in pgast.h and update OBJS/SQL catalog (pgast--1.1.0.sql) to register the new function.
+  - SQL Surface
+      - Register the function in pgast--1.1.0.sql:
+
+        CREATE OR REPLACE FUNCTION pgast_region_to_svg(region polygon, projection text DEFAULT 'AIT')
+        RETURNS text
+        AS 'MODULE_PATHNAME', 'pgast_region_to_svg_polygon'
+        LANGUAGE C IMMUTABLE STRICT;
+      - Document accepted projection keywords and the coordinate system assumptions.
+  - Testing Strategy
+      - Add regression script (sql/regression_region_to_svg.sql) once REGRESS harness is enabled. Check:
+          - Known polygon -> output contains expected SVG header and number of vertices.
+          - Invalid projection raises an error.
+          - RA wrap-around polygons produce finite coordinates.
+      - Manual test: feed stored FITS header to transform to polygon + SVG and inspect output in a browser.
+
+  Integration Plan for Python Web App
+
+  1. Data Retrieval Pipeline
+      - Python service fetches FITS header/image via external API.
+      - Store header text (if needed) alongside data in PostgreSQL.
+  2. Cutout & Region Generation
+      - Use existing pgast_cutout or pgast_bounding_polygon SQL calls to obtain region polygons for the cutout footprint.
+      - Alternatively, run pgast_bounding_polygon(fits_header_text) if the FITS header is stored.
+  3. SVG Overlay
+      - Call pgast_region_to_svg(polygon, projection) in SQL to get SVG markup for the desired projection (e.g., SELECT
+  pgast_region_to_svg(polygon_col, 'AIT') FROM ...).
+      - In Python, overlay the returned SVG path on top of the fetched FITS cutout (convert FITS to PNG/JPEG via Astropy;
+  use web front-end to stack the image and SVG).
+  4. Projection Alignment
+      - Ensure the Python/FITS rendering uses the same projection as requested from pgAST. For sky projections requiring
+  image reprojection, rely on an external library (Astropy reproject) before overlaying.
+      - If the FITS is displayed in native TAN projection, request pgast_region_to_svg(..., 'TAN') to keep coordinate
+  systems consistent.
+  5. Error Handling & Logging
+      - Catch SQL errors for unsupported projections or malformed regions; present clear messages in the app.
+      - Optionally expose an internal API endpoint that wraps the SQL call and returns both the cutout and SVG,
+  simplifying the front-end logic.
+
+  With this plan, the database gains a reusable SVG generator while the Python web app can combine cutouts with consistent
+  RA/Dec overlays using only SQL calls and lightweight SVG rendering.
