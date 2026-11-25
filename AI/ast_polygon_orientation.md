@@ -32,11 +32,21 @@ order is kept: the reversal is cancelled by the negation. Two consequences:
   (`pgast_bounding_polygon.c` does this).
 - `astNegate` changes only the flag, never the vertices.
 
-`Bounded` cannot tell the two regions apart: in AST 9.5.0 every Region on a
-SkyFrame reports `Bounded = 1`. Code before 2026-11 relied on `Bounded`, plus
-a centre-pixel test that read uninitialised memory and had its condition
-inverted. It usually gave the right answer, but only by accident: a random
-point is almost always in the larger region.
+`Bounded` cannot tell the two regions apart. In AST 9.5.0's source
+(`GetBounded` in `polygon.c`) every Polygon on a SkyFrame is bounded. Probes
+on 2026-11-25 agree for both 9.2.14 and 9.5.0: polygons built directly on an
+ICRS SkyFrame and polygons built from the test FITS headers all reported
+`Bounded = 1`, whichever region they described.
+
+Code before 2026-11 relied on `Bounded` (which, on those probes, never
+fired), plus a centre-pixel test that read uninitialised memory and had its
+condition inverted. For every test header, at both parities and in both AST
+versions, the polygon built from the mesh was the rest of the sky (it
+contained the antipode, not the centre), and the inverted test with a
+garbage point is what reversed it. It usually gave the right answer, but
+only by accident: a random point is almost always in the larger region.
+Removing the `Bounded` check is safe whether or not it can fire for other
+headers, because the centre test now decides the orientation by itself.
 
 The increasing-RA example above was checked against AST 9.2.14 and 9.5.0
 with `pgast_point_in_polygon`: the centre is outside and the antipode is

@@ -75,7 +75,7 @@ pgast_bounding_circle_header(PG_FUNCTION_ARGS) // (text fits_header)
 	circle->center.y = rad2deg(centre[1]);
 	circle->radius = rad2deg(circle->radius);
 	
-	astEnd;
+	pgast_ast_end_checked();
 	
 	PG_RETURN_CIRCLE_P(circle);
 }

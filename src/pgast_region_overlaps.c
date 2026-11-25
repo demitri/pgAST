@@ -95,7 +95,7 @@ pgast_icrs_polygon_overlaps_hdu(PG_FUNCTION_ARGS) // (polygon a_polygon, text fi
 
 	polygons_overlap = (overlap_value == 2 || overlap_value == 3 || overlap_value == 4 || overlap_value == 5);
 	
-	astEnd;
+	pgast_ast_end_checked();
 	
 	PG_RETURN_BOOL(polygons_overlap);
 }

@@ -100,7 +100,7 @@ pgast_bounding_polygon(PG_FUNCTION_ARGS) // (text fits_header_as_string)
 		pg_polygon->p[i].y = (float8) rad2deg(points[npoints + i]);;
 	}
 
-	astEnd;
+	pgast_ast_end_checked();
 	
 	PG_RETURN_POLYGON_P(pg_polygon);
 }

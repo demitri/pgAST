@@ -98,6 +98,11 @@ AstPolygon* pgPolygon2astPolygon(POLYGON *polygon, AstSkyFrame *frame) //, doubl
 	
 	pfree(points);
 
+	if (!astOK) {
+		astEnd;
+		pgast_ast_error("pgAST (pgPolygon2astPolygon): AST could not build a polygon from the PostgreSQL polygon.");
+	}
+
 	astExport(ast_polygon);
 	astEnd;
 	
@@ -229,7 +234,7 @@ pgast_distance(PG_FUNCTION_ARGS) // double x0, y0, x1, y1
 
 	distance = rad2deg(astDistance(icrs_frame, point1, point2));
 	
-	astEnd;
+	pgast_ast_end_checked();
 
 	PG_RETURN_FLOAT8(distance);
 }
@@ -258,7 +263,7 @@ pgast_distance_radec_point(PG_FUNCTION_ARGS)
 	
 	distance = rad2deg(astDistance(icrs_frame, point1, point2));
 	
-	astEnd;
+	pgast_ast_end_checked();
 	
 	PG_RETURN_FLOAT8(distance);
 }
@@ -286,7 +291,7 @@ pgast_distance_points(PG_FUNCTION_ARGS)
 	
 	distance = rad2deg(astDistance(icrs_frame, point1, point2));
 	
-	astEnd;
+	pgast_ast_end_checked();
 	
 	PG_RETURN_FLOAT8(distance);
 }

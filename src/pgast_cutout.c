@@ -276,7 +276,7 @@ pgast_cutout(PG_FUNCTION_ARGS) // (fits_header text, ra double, dec double, side
 		pg_polygon->p[i].y = (float8) rad2deg(corners_world_dec[i]);
 	}
 	
-	astEnd;
+	pgast_ast_end_checked();
 	
 	PG_RETURN_POLYGON_P(pg_polygon);
 }

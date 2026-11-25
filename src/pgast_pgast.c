@@ -90,7 +90,7 @@ pgast_point_in_polygon_poly(PG_FUNCTION_ARGS) // (polygon polygon, float8 ra, fl
 
 	//fprintf(stderr, "(%.4f, %.4f)\n", ra_out, dec_out);
 
-	astEnd;
+	pgast_ast_end_checked();
 	
 	PG_RETURN_BOOL(point_in_region);
 }
@@ -137,7 +137,7 @@ pgast_point_in_polygon_header(PG_FUNCTION_ARGS) // (text fits_header, float ra, 
 	
 	point_in_region = (ra_out == AST__BAD ? 0 : 1);
 	
-	astEnd;
+	pgast_ast_end_checked();
 	
 	PG_RETURN_BOOL(point_in_region);
 }
@@ -200,7 +200,7 @@ wcs_test(PG_FUNCTION_ARGS)
     End the AST Object context. All Objects created since the
    	corresponding invocation of astbegin will be annulled automatically.
    	*/
-	astEnd;
+	pgast_ast_end_checked();
 	
 	PG_RETURN_INT32(issky);
 }

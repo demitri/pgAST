@@ -34,4 +34,18 @@
 		ereport(ERROR, (errmsg(__VA_ARGS__), errdetail("AST status: %d", pgast_ast_status_))); \
 	} while (0)
 
+/*
+ End the AST context of a SQL function's success path. If any AST call in
+ the function failed (AST calls do nothing once the status is set, so the
+ result would be garbage), raise an error instead of returning.
+*/
+#define pgast_ast_end_checked() \
+	do { \
+		if (!astOK) { \
+			astEnd; \
+			pgast_ast_error("pgAST (%s): an AST call failed.", __func__); \
+		} \
+		astEnd; \
+	} while (0)
+
 #endif /* __PGAST2_H__ */
