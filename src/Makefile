@@ -35,9 +35,11 @@ endif
 AST_LIB  = $(AST)/lib
 
 # Adding '-Wno-format-zero-length' since AST can take empty strings as parameters
-# Adding '-Wno-declaration-after-statement' since -std=c99 doesn't seem to turn on C99 on Linux
+# No -std flag: PostgreSQL 19's headers need C11 (_Static_assert, typedef
+# redefinition), which -std=c99 forbids; the compilers' defaults (C17) work.
+# Adding '-Wno-declaration-after-statement' since PGXS warns on mixed declarations.
 #
-PG_CPPFLAGS += -I$(AST)/include -std=c99 -Wall -Wno-declaration-after-statement
+PG_CPPFLAGS += -I$(AST)/include -Wall -Wno-declaration-after-statement
 # '-Wno-format-zero-length'
 
 # CFLAGS_SL
