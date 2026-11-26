@@ -18,6 +18,11 @@
 
 #include "ast.h"
 
+// pgAST requires AST 9.5.0 or later (the version it is tested with).
+#if AST__VMAJOR < 9 || (AST__VMAJOR == 9 && AST__VMINOR < 5)
+#error "pgAST requires Starlink AST 9.5.0 or later; set AST= to such an installation."
+#endif
+
 /*
  AST contexts (astBegin/astEnd) are counted, so that contexts left open by
  an error can be closed. ereport(ERROR) longjmps past every astEnd between

@@ -55,14 +55,18 @@ scale, centre), never from pasting what the code printed.
 
 ## AST versions
 
-The code builds and passes the tests against AST 9.2.14 and 9.5.0 (the
-latest release, 2026-09-22). The `SHLIB_LINK` list in `src/Makefile` links the
-static AST libraries; the 9.5.0 build produces the same set.
+AST 9.5.0 (released 2026-09-22) is the minimum: `src/pgast.h` stops the build
+against anything older (owner's ruling, 2026-11-25). The code was also tested
+against 9.2.14 before that ruling, and AI/ast_polygon_orientation.md records
+where the two versions behave differently. The `SHLIB_LINK` list in
+`src/Makefile` links the static AST libraries.
 
 ## Conventions
 
 - Fail loud: an AST failure is an error, not `NULL`, `false` or a DEBUG log
-  line. The README documents the deliberate `NULL` returns (a header that is
+  line. A bad header in a query over many rows aborts the whole statement;
+  that is the intended behaviour (owner's ruling, 2026-11-25), so there is no
+  NULL-returning variant. The README documents the deliberate `NULL` returns (a header that is
   not a 2D image with both axes at least 2 pixels long); keep that list and
   the code in step.
 - AST failures are raised with `pgast_ast_error(...)` (`src/pgast.h`), never a
@@ -85,6 +89,10 @@ static AST libraries; the 9.5.0 build produces the same set.
 - Everything is ICRS: code that reads a WCS sets `System=ICRS` on the
   FrameSet right after `astRead`, so headers in other systems (Galactic,
   FK4, ...) give ICRS positions.
+- Code that a review or a reader might take for dead but is not (or that
+  fires but has no effect) carries a comment at the site saying what was
+  measured, and when (owner's ruling, 2026-11-25). Do not remove such code
+  on a reading of the source; measure it on the AST version in use.
 - Polygon orientation: see `AI/ast_polygon_orientation.md`. Any code that
   builds an AstPolygon from vertices it did not choose must decide the
   inside explicitly.

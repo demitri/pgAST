@@ -87,6 +87,35 @@ void pgast_polygon_set_boundbox(POLYGON *polygon)
 }
 
 /**
+ Read the WCS from a FitsChan and convert it to ICRS. Shared by every
+ function that reads a FITS header's WCS. Read header values needed
+ elsewhere (e.g. NAXISn) before calling: astRead may remove the WCS cards.
+
+ pgAST works in ICRS. Setting System on the FrameSet re-maps its current
+ (sky) Frame, keeping the FrameSet consistent (SUN/211, "Maintaining the
+ Integrity of FrameSets"), so a header in, e.g., Galactic or FK4
+ coordinates yields ICRS positions. Raises an error if there is no WCS, if
+ it has no sky frame, or if the conversion fails. The FrameSet belongs to
+ the caller's AST context.
+ */
+AstFrameSet *pgast_read_icrs_wcs(AstFitsChan *fitsChan, const char *caller)
+{
+	astClear(fitsChan, "Card"); // read from the first card
+	AstObject *wcs = astRead(fitsChan);
+	if (wcs == AST__NULL || !astIsAFrameSet(wcs))
+		pgast_ast_error("pgAST error (%s): No valid WCS could be read from the provided header.", caller);
+
+	AstFrame *sky_frame = astGetFrame((AstFrameSet *)wcs, AST__CURRENT);
+	if (sky_frame == AST__NULL || !astIsASkyFrame(sky_frame))
+		pgast_ast_error("pgAST error (%s): The provided WCS does not contain a sky frame.", caller);
+
+	astSet(wcs, "System=ICRS");
+	if (!astOK)
+		pgast_ast_error("pgAST error (%s): could not convert the WCS to ICRS.", caller);
+	return (AstFrameSet *)wcs;
+}
+
+/**
 Convert a FITS header, provided in the form of a single C string, into a FitsChan object.
 This function assumes it will be called in between astBegin/astEnd.
 */

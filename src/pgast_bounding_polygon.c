@@ -72,6 +72,12 @@ pgast_bounding_polygon(PG_FUNCTION_ARGS) // (text fits_header_as_string)
 	// say which side is the inside (the left, seen from inside the sphere, as
 	// in AST). astGetRegionPoints returns the vertices as AST stores them,
 	// which for a negated Polygon describe the other region, so reverse them.
+	// NOT DEAD (a review judged it so): this runs for footprints larger than
+	// half the sky, which AST 9.5.0 stores negated (the reversed vertices
+	// fitsheader2polygon builds describe the large region, and AST stores the
+	// smaller one plus Negated). Measured 2026-11-25: with this block
+	// disabled, the larger-than-half-sky case in src/test/sql/header_region.sql
+	// fails (the returned polygon contains the gap, not the footprint).
 	if (astGetI(sky_polygon, "Negated")) {
 		for (int i=0, j=npoints-1; i < j; i++, j--) {
 			double tx = points[i], ty = points[npoints + i];

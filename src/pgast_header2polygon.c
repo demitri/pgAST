@@ -6,6 +6,7 @@
 #include "pgast.h"
 #include "pgast_pgast.h"
 #include "pgast_header2polygon.h"
+#include "pgast_util.h"
 
 //#define deg2rad(angleDegrees) ((angleDegrees) * M_PI / 180.0)
 //#define rad2deg(angleRadians) ((angleRadians) * 180.0 / M_PI)
@@ -142,37 +143,11 @@ AstPolygon* fitsheader2polygon(const char *header, int *npoints) //, double *pol
 	}
 
 	// ---------------------------------------------
-	// Read the WCS info from the header.
-	// It's better to get specific values from the header before calling
-	// astRead as the function may delete the header if it's considered
-	// part of the WCS information.
-	astClear(fitsChan, "Card"); // reset position to start of header
-	wcs_frames = astRead(fitsChan);
-	
-	if (wcs_frames == AST__NULL) {
-		pgast_ast_end();
-		pgast_ast_error("pgAST error (fitsheader2polygon): No valid WCS could be read from the provided header.");
-	}
-
-	// The resulting object contains two frames:
-	// the pixel frame and the "sky" frame.
+	// Read the WCS, in ICRS (after the NAXIS reads above: astRead may remove
+	// the WCS cards from the FitsChan).
+	wcs_frames = pgast_read_icrs_wcs(fitsChan, "fitsheader2polygon");
 	pixel_frame = astGetFrame(wcs_frames, AST__BASE);
 	sky_frame = astGetFrame(wcs_frames, AST__CURRENT);
-	if (astIsASkyFrame(sky_frame) == 0) { // returns 1 if yes, 0 if no
-		pgast_ast_end();
-		pgast_ast_error("pgAST error (fitsheader2polygon): The provided WCS does not contain a sky frame.");
-	}
-
-	// pgAST works in ICRS. Setting System on the FrameSet re-maps its current
-	// (sky) Frame, keeping the FrameSet consistent (SUN/211, "Maintaining the
-	// Integrity of FrameSets"), so a header in, e.g., Galactic or FK4
-	// coordinates yields ICRS positions from here on.
-	astSet(wcs_frames, "System=ICRS");
-	sky_frame = astGetFrame(wcs_frames, AST__CURRENT);
-	if (!astOK) {
-		pgast_ast_end();
-		pgast_ast_error("pgAST error (%s): could not convert the WCS to ICRS.", __func__);
-	}
 	// ---------------------------------------------
 
 	
@@ -326,6 +301,13 @@ AstPolygon* fitsheader2polygon(const char *header, int *npoints) //, double *pol
 
 	// ---
 	
+	// NOT DEAD, BUT HAS NO EFFECT ON THE OUTPUT (measured 2026-11-25, AST
+	// 9.5.0): this fires on every call (the flat polygon reports Bounded=0,
+	// Negated=1), but the vertices read back below with astGetRegionPoints,
+	// and so every pgAST result, are identical with and without it (checked
+	// for both pixel parities, a larger-than-half-sky footprint and a
+	// Galactic header): astGetRegionPoints returns the stored vertices
+	// whatever Negated says. Kept rather than removed on a reading of AST.
 	if (!astGetI(reduced_flat_polygon, "Bounded")) {
 		astNegate(reduced_flat_polygon);
 	}
@@ -417,7 +399,9 @@ AstPolygon* fitsheader2polygon(const char *header, int *npoints) //, double *pol
 	// inside the celestial sphere. The order of the mesh points above depends
 	// on the WCS (e.g. on the pixel parity), so the polygon just built may be
 	// the image footprint or the rest of the sky. ("Bounded" cannot tell the
-	// two apart: in current AST every Region on a SkyFrame is bounded.)
+	// two apart: every Region on a SkyFrame is bounded. A Bounded check that
+	// stood here was removed in 2026-11: probes found it never fired, under
+	// AST 9.2.14 or 9.5.0; see AI/ast_polygon_orientation.md.)
 	//
 	// Test the centre pixel. If it is outside, rebuild the polygon from the
 	// vertices in reverse order, which describes the other region. Reversing

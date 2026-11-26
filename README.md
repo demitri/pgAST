@@ -26,7 +26,7 @@ DROP EXTENSION pgast;
 CREATE EXTENSION pgast;
 ```
 
-pgAST has been tested with AST 9.2.14 and 9.5.0.
+pgAST requires AST 9.5.0 or later; the build stops with an error against an older version.
 
 ## Running the Tests
 

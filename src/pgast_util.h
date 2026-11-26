@@ -11,6 +11,7 @@
 
 void pgPolygon2astPoints(POLYGON *polygon, double *points);
 AstFitsChan* cstring2fitsChan(const char *header);
+AstFrameSet *pgast_read_icrs_wcs(AstFitsChan *fitsChan, const char *caller);
 AstPolygon* pgPolygon2astPolygon(POLYGON *polygon, AstSkyFrame *frame);
 void pgast_polygon_set_boundbox(POLYGON *polygon);
 void pgast_region_bounding_disc(AstRegion *region, double centre[2], double *radius, const char *caller);

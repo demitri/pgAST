@@ -117,32 +117,8 @@ pgast_cutout(PG_FUNCTION_ARGS) // (fits_header text, ra double, dec double, side
 	// ---------------------------------------------
 	// Read the WCS info from the header.
 	fitsChan = cstring2fitsChan(fits_header);
-	wcs_frames = astRead(fitsChan);
-	
-	if (wcs_frames == AST__NULL) {
-		pgast_ast_end();
-		pgast_ast_error("pgAST error (pgast_cutout): No valid WCS could be read from the provided header.");
-	}
-
-	// The resulting object contains two frames:
-	// the pixel frame and the "sky" frame.
-	//pixel_frame = astGetFrame(wcs_frames, AST__BASE); // not needed, here if it is later
+	wcs_frames = pgast_read_icrs_wcs(fitsChan, "pgast_cutout");
 	sky_frame = astGetFrame(wcs_frames, AST__CURRENT);
-	if (sky_frame == AST__NULL || astIsASkyFrame(sky_frame) == 0) { // returns 1 if yes, 0 if no
-		pgast_ast_end();
-		pgast_ast_error("pgAST error (pgast_cutout): The provided WCS does not contain a sky frame.");
-	}
-
-	// pgAST works in ICRS. Setting System on the FrameSet re-maps its current
-	// (sky) Frame, keeping the FrameSet consistent (SUN/211, "Maintaining the
-	// Integrity of FrameSets"), so a header in, e.g., Galactic or FK4
-	// coordinates yields ICRS positions from here on.
-	astSet(wcs_frames, "System=ICRS");
-	sky_frame = astGetFrame(wcs_frames, AST__CURRENT);
-	if (!astOK) {
-		pgast_ast_end();
-		pgast_ast_error("pgAST error (%s): could not convert the WCS to ICRS.", __func__);
-	}
 	// ---------------------------------------------
 
 	// calculate p0_pix
