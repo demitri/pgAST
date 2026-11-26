@@ -71,7 +71,7 @@ AstPolygon* fitsheader2polygon(const char *header, int *npoints) //, double *pol
 	
 	if (!astOK) {
 		pgast_ast_end();
-		pgast_ast_error("pgAST error (fitsheader2polygon): An error occurred when reading the FITS header.");
+		pgast_ast_error(PGAST_BAD_INPUT, "pgAST error (fitsheader2polygon): An error occurred when reading the FITS header.");
 	}
 
 	// rewind the FitsChan, see section 16.4 in sun211.pdf
@@ -93,7 +93,7 @@ AstPolygon* fitsheader2polygon(const char *header, int *npoints) //, double *pol
 		success = astGetFitsI(fitsChan, "NAXIS", &naxes); // returns 0 if not found, 1 otherwise
 		if (!astOK) { // keyword present but its value is not an integer
 			pgast_ast_end();
-			pgast_ast_error("pgAST error (fitsheader2polygon): could not read 'NAXIS' as an integer.");
+			pgast_ast_error(PGAST_BAD_INPUT, "pgAST error (fitsheader2polygon): could not read 'NAXIS' as an integer.");
 		}
 		if (success == 0) {
 			ereport(DEBUG1, (errmsg("pgAST error (fitsheader2polygon): astGetFits did not find 'NAXIS' keyword.")));
@@ -110,7 +110,7 @@ AstPolygon* fitsheader2polygon(const char *header, int *npoints) //, double *pol
 		success = astGetFitsI(fitsChan, "NAXIS1", &dim1);
 		if (!astOK) { // keyword present but its value is not an integer
 			pgast_ast_end();
-			pgast_ast_error("pgAST error (fitsheader2polygon): could not read 'NAXIS1' as an integer.");
+			pgast_ast_error(PGAST_BAD_INPUT, "pgAST error (fitsheader2polygon): could not read 'NAXIS1' as an integer.");
 		}
 		if (success == 0) {
 			ereport(DEBUG1, (errmsg("pgAST error (fitsheader2polygon): astGetFits did not find 'NAXIS1' keyword.")));
@@ -128,7 +128,7 @@ AstPolygon* fitsheader2polygon(const char *header, int *npoints) //, double *pol
 		success = astGetFitsI(fitsChan, "NAXIS2", &dim2);
 		if (!astOK) { // keyword present but its value is not an integer
 			pgast_ast_end();
-			pgast_ast_error("pgAST error (fitsheader2polygon): could not read 'NAXIS2' as an integer.");
+			pgast_ast_error(PGAST_BAD_INPUT, "pgAST error (fitsheader2polygon): could not read 'NAXIS2' as an integer.");
 		}
 		if (success == 0) {
 			ereport(DEBUG1, (errmsg("pgAST error (fitsheader2polygon): astGetFits did not find 'NAXIS2' keyword.")));
@@ -170,7 +170,7 @@ AstPolygon* fitsheader2polygon(const char *header, int *npoints) //, double *pol
 
 		if (pixelbox == AST__NULL) {
 			pgast_ast_end();
-			pgast_ast_error("pgAST error (fitsheader2polygon): astBox returned NULL.");
+			pgast_ast_error(PGAST_AST_FAILURE, "pgAST error (fitsheader2polygon): astBox returned NULL.");
 		}
 	}
 
@@ -189,7 +189,7 @@ AstPolygon* fitsheader2polygon(const char *header, int *npoints) //, double *pol
 	// if skybox == AST__NULL : handle error...
 	if (skybox == AST__NULL) {
 		pgast_ast_end();
-		pgast_ast_error("pgAST error (fitsheader2polygon): astMapRegion returned NULL.");
+		pgast_ast_error(PGAST_AST_FAILURE, "pgAST error (fitsheader2polygon): astMapRegion returned NULL.");
 	}
 
 	// Create a mesh: this is an array of points evenly
@@ -221,7 +221,7 @@ AstPolygon* fitsheader2polygon(const char *header, int *npoints) //, double *pol
 	// if skybox == AST__NULL : handle error...
 	if (!astOK) {
 		pgast_ast_end();
-		pgast_ast_error("pgAST error (fitsheader2polygon): astGetRegionMesh (1) failed.");
+		pgast_ast_error(PGAST_AST_FAILURE, "pgAST error (fitsheader2polygon): astGetRegionMesh (1) failed.");
 	}
 
 	// allocate array for points -> [maxcoord][num_points]
@@ -255,7 +255,7 @@ AstPolygon* fitsheader2polygon(const char *header, int *npoints) //, double *pol
 	
 	if (!astOK) {
 		pgast_ast_end();
-		pgast_ast_error("pgAST error (fitsheader2polygon): astGetRegionMesh (2) failed.");
+		pgast_ast_error(PGAST_AST_FAILURE, "pgAST error (fitsheader2polygon): astGetRegionMesh (2) failed.");
 	}
 	
 	// The returned array is in the form:
@@ -329,7 +329,7 @@ AstPolygon* fitsheader2polygon(const char *header, int *npoints) //, double *pol
 
 	if (!astOK || num_points < 3) {
 		pgast_ast_end();
-		pgast_ast_error("pgAST error (fitsheader2polygon): astGetRegionPoints (count) failed or gave %d points.", num_points);
+		pgast_ast_error(PGAST_AST_FAILURE, "pgAST error (fitsheader2polygon): astGetRegionPoints (count) failed or gave %d points.", num_points);
 	}
 
 	//	ereport(DEBUG1, (errmsg("fitsheader2polygon: after astGetRegionPoints (3)")));
@@ -356,7 +356,7 @@ AstPolygon* fitsheader2polygon(const char *header, int *npoints) //, double *pol
 
 	if (!astOK) {
 		pgast_ast_end();
-		pgast_ast_error("pgAST error (fitsheader2polygon): astGetRegionPoints failed.");
+		pgast_ast_error(PGAST_AST_FAILURE, "pgAST error (fitsheader2polygon): astGetRegionPoints failed.");
 	}
 
 	//ereport(DEBUG1, (errmsg("astNorm before: %f %f", points[0], points[1])));
@@ -422,7 +422,7 @@ AstPolygon* fitsheader2polygon(const char *header, int *npoints) //, double *pol
 
 		if (!astOK || centre_x[0] == AST__BAD || centre_y[0] == AST__BAD) {
 			pgast_ast_end();
-			pgast_ast_error("pgAST (fitsheader2polygon): the WCS does not map the centre pixel (%.1f, %.1f) to the sky.",
+			pgast_ast_error(PGAST_BAD_INPUT, "pgAST (fitsheader2polygon): the WCS does not map the centre pixel (%.1f, %.1f) to the sky.",
 							pixel_x[0], pixel_y[0]);
 		}
 		centre[0] = centre_x[0];
@@ -452,7 +452,7 @@ AstPolygon* fitsheader2polygon(const char *header, int *npoints) //, double *pol
 
 			if (!astOK || !astPointInRegion(sky_frame_polygon, centre)) {
 				pgast_ast_end();
-				pgast_ast_error("pgAST (fitsheader2polygon): neither vertex order gives a polygon that contains "
+				pgast_ast_error(PGAST_BAD_INPUT, "pgAST (fitsheader2polygon): neither vertex order gives a polygon that contains "
 								"the centre pixel; the WCS is not well behaved over the image.");
 			}
 		}

@@ -159,15 +159,28 @@ SELECT name,
 FROM (SELECT name, pgast_cutout(header, 150.0, 2.0009, 37.44) AS c FROM images) t
 ORDER BY name;
 
--- An AST failure must raise an error, and must not leave AST's (global)
--- error status set: if it did, every later call in the same session would
--- silently do nothing. 'RA---QQQ' is not a FITS projection code.
--- (Terse verbosity: the AST status number in the error detail is not part of
--- what is tested.)
-\set VERBOSITY terse
-SELECT pgast_bounding_polygon(replace(test_header(150, 2, -0.001), '''RA---TAN''', '''RA---QQQ''')) IS NULL AS unknown_projection;
-SELECT pgast_bounding_polygon(replace(test_header(150, 2, -0.001), 'NAXIS1  =                  100', 'NAXIS1  =                ''abc''')) IS NULL AS malformed_naxis1;
-SELECT pgast_cutout(replace(test_header(150, 2, -0.001), '''RA---TAN''', '''RA---QQQ'''), 150.0, 2.0, 36.0) IS NULL AS cutout_unknown_projection;
+-- Errors. Each is caught and reported as SQLSTATE, message, and whether the
+-- DETAIL carries AST's own message, recognised by an AST routine name such as
+-- "astRead(" (the text is AST's, so only its presence is tested). Bad input is 22023 invalid_parameter_value.
+-- The errors must also not leave AST's (global) error status set: if they
+-- did, every later call in the same session would silently do nothing, so
+-- a valid header is tested after them. 'RA---QQQ' is not a projection code.
+CREATE FUNCTION test_error(query text) RETURNS text LANGUAGE plpgsql AS $$
+DECLARE
+    state text; message text; detail text;
+BEGIN
+    EXECUTE query;
+    RETURN 'no error';
+EXCEPTION WHEN OTHERS THEN
+    GET STACKED DIAGNOSTICS state = RETURNED_SQLSTATE, message = MESSAGE_TEXT, detail = PG_EXCEPTION_DETAIL;
+    RETURN state || ': ' || message
+           || CASE WHEN detail ~ 'ast[A-Z][A-Za-z0-9]*\(' THEN ' [DETAIL: AST message]' ELSE '' END;
+END
+$$;
+
+SELECT test_error($q$SELECT pgast_bounding_polygon(replace(test_header(150, 2, -0.001), '''RA---TAN''', '''RA---QQQ'''))$q$) AS unknown_projection;
+SELECT test_error($q$SELECT pgast_bounding_polygon(replace(test_header(150, 2, -0.001), 'NAXIS1  =                  100', 'NAXIS1  =                ''abc'''))$q$) AS malformed_naxis1;
+SELECT test_error($q$SELECT pgast_cutout(replace(test_header(150, 2, -0.001), '''RA---TAN''', '''RA---QQQ'''), 150.0, 2.0, 36.0)$q$) AS cutout_unknown_projection;
 -- SIN projection centred on (0, 0) covers only the hemisphere within 90 deg
 -- of (0, 0); at 0.6366 deg/pixel its limb is 90 pixels from the centre. A
 -- 36 arcsec box at RA 80 (1.4 pixels inside the limb) must contain its
@@ -184,12 +197,11 @@ CREATE FUNCTION test_header_sin() RETURNS text LANGUAGE sql IMMUTABLE AS $$
          WITH ORDINALITY AS t(card, n)
 $$;
 SELECT pgast_point_in_polygon(80.0, 0.0, pgast_cutout(test_header_sin(), 80.0, 0.0, 36.0)) AS sin_small_box_near_limb;
-SELECT pgast_cutout(test_header_sin(), 80.0, 0.0, 108000.0) IS NULL AS sin_box_past_limb;
--- No bounding circle exists under 90 deg for a region on the far side of its
--- boundary: the larger-than-half-sky footprint, and a box listed in the
--- order that describes the rest of the sky. (AST's disc would describe the
--- 60-deg gap and the 0.014-deg box respectively.)
-SELECT pgast_bounding_circle(test_header_big()) IS NULL AS big_footprint_circle;
-SELECT pgast_bounding_circle(polygon '((149.99,1.99),(150.01,1.99),(150.01,2.01),(149.99,2.01))') IS NULL AS rest_of_sky_circle;
+SELECT test_error($q$SELECT pgast_cutout(test_header_sin(), 80.0, 0.0, 108000.0)$q$) AS sin_box_past_limb;
+-- No bounding circle for a region on the far side of its boundary: the
+-- larger-than-half-sky footprint, and a box listed in the order that
+-- describes the rest of the sky. (AST's disc would describe the 60-deg gap
+-- and the 0.014-deg box respectively.)
+SELECT test_error($q$SELECT pgast_bounding_circle(test_header_big())$q$) AS big_footprint_circle;
+SELECT test_error($q$SELECT pgast_bounding_circle(polygon '((149.99,1.99),(150.01,1.99),(150.01,2.01),(149.99,2.01))')$q$) AS rest_of_sky_circle;
 SELECT pgast_point_in_polygon(150.0, 2.0, test_header(150, 2, -0.001)) AS centre_after_error;
-\set VERBOSITY default

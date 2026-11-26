@@ -202,18 +202,42 @@ ORDER BY name;
  mirrored  | t           | t           | t                       | t
 (2 rows)
 
--- An AST failure must raise an error, and must not leave AST's (global)
--- error status set: if it did, every later call in the same session would
--- silently do nothing. 'RA---QQQ' is not a FITS projection code.
--- (Terse verbosity: the AST status number in the error detail is not part of
--- what is tested.)
-\set VERBOSITY terse
-SELECT pgast_bounding_polygon(replace(test_header(150, 2, -0.001), '''RA---TAN''', '''RA---QQQ''')) IS NULL AS unknown_projection;
-ERROR:  pgAST error (fitsheader2polygon): No valid WCS could be read from the provided header.
-SELECT pgast_bounding_polygon(replace(test_header(150, 2, -0.001), 'NAXIS1  =                  100', 'NAXIS1  =                ''abc''')) IS NULL AS malformed_naxis1;
-ERROR:  pgAST error (fitsheader2polygon): could not read 'NAXIS1' as an integer.
-SELECT pgast_cutout(replace(test_header(150, 2, -0.001), '''RA---TAN''', '''RA---QQQ'''), 150.0, 2.0, 36.0) IS NULL AS cutout_unknown_projection;
-ERROR:  pgAST error (pgast_cutout): No valid WCS could be read from the provided header.
+-- Errors. Each is caught and reported as SQLSTATE, message, and whether the
+-- DETAIL carries AST's own message, recognised by an AST routine name such as
+-- "astRead(" (the text is AST's, so only its presence is tested). Bad input is 22023 invalid_parameter_value.
+-- The errors must also not leave AST's (global) error status set: if they
+-- did, every later call in the same session would silently do nothing, so
+-- a valid header is tested after them. 'RA---QQQ' is not a projection code.
+CREATE FUNCTION test_error(query text) RETURNS text LANGUAGE plpgsql AS $$
+DECLARE
+    state text; message text; detail text;
+BEGIN
+    EXECUTE query;
+    RETURN 'no error';
+EXCEPTION WHEN OTHERS THEN
+    GET STACKED DIAGNOSTICS state = RETURNED_SQLSTATE, message = MESSAGE_TEXT, detail = PG_EXCEPTION_DETAIL;
+    RETURN state || ': ' || message
+           || CASE WHEN detail ~ 'ast[A-Z][A-Za-z0-9]*\(' THEN ' [DETAIL: AST message]' ELSE '' END;
+END
+$$;
+SELECT test_error($q$SELECT pgast_bounding_polygon(replace(test_header(150, 2, -0.001), '''RA---TAN''', '''RA---QQQ'''))$q$) AS unknown_projection;
+                                                 unknown_projection                                                  
+---------------------------------------------------------------------------------------------------------------------
+ 22023: pgAST error (fitsheader2polygon): No valid WCS could be read from the provided header. [DETAIL: AST message]
+(1 row)
+
+SELECT test_error($q$SELECT pgast_bounding_polygon(replace(test_header(150, 2, -0.001), 'NAXIS1  =                  100', 'NAXIS1  =                ''abc'''))$q$) AS malformed_naxis1;
+                                           malformed_naxis1                                            
+-------------------------------------------------------------------------------------------------------
+ 22023: pgAST error (fitsheader2polygon): could not read 'NAXIS1' as an integer. [DETAIL: AST message]
+(1 row)
+
+SELECT test_error($q$SELECT pgast_cutout(replace(test_header(150, 2, -0.001), '''RA---TAN''', '''RA---QQQ'''), 150.0, 2.0, 36.0)$q$) AS cutout_unknown_projection;
+                                           cutout_unknown_projection                                           
+---------------------------------------------------------------------------------------------------------------
+ 22023: pgAST error (pgast_cutout): No valid WCS could be read from the provided header. [DETAIL: AST message]
+(1 row)
+
 -- SIN projection centred on (0, 0) covers only the hemisphere within 90 deg
 -- of (0, 0); at 0.6366 deg/pixel its limb is 90 pixels from the centre. A
 -- 36 arcsec box at RA 80 (1.4 pixels inside the limb) must contain its
@@ -235,20 +259,31 @@ SELECT pgast_point_in_polygon(80.0, 0.0, pgast_cutout(test_header_sin(), 80.0, 0
  t
 (1 row)
 
-SELECT pgast_cutout(test_header_sin(), 80.0, 0.0, 108000.0) IS NULL AS sin_box_past_limb;
-ERROR:  pgAST error (pgast_cutout): a corner of the box cannot be computed; the cutout extends beyond the region where the WCS is defined.
--- No bounding circle exists under 90 deg for a region on the far side of its
--- boundary: the larger-than-half-sky footprint, and a box listed in the
--- order that describes the rest of the sky. (AST's disc would describe the
--- 60-deg gap and the 0.014-deg box respectively.)
-SELECT pgast_bounding_circle(test_header_big()) IS NULL AS big_footprint_circle;
-ERROR:  pgAST error (pgast_bounding_circle_header): the region is the far side of its boundary (e.g. larger than half the sky, or a polygon whose vertices describe the rest of the sky); AST gives no bounding circle for it.
-SELECT pgast_bounding_circle(polygon '((149.99,1.99),(150.01,1.99),(150.01,2.01),(149.99,2.01))') IS NULL AS rest_of_sky_circle;
-ERROR:  pgAST error (pgast_bounding_circle_polygon): the region is the far side of its boundary (e.g. larger than half the sky, or a polygon whose vertices describe the rest of the sky); AST gives no bounding circle for it.
+SELECT test_error($q$SELECT pgast_cutout(test_header_sin(), 80.0, 0.0, 108000.0)$q$) AS sin_box_past_limb;
+                                                             sin_box_past_limb                                                             
+-------------------------------------------------------------------------------------------------------------------------------------------
+ 22023: pgAST error (pgast_cutout): a corner of the box cannot be computed; the cutout extends beyond the region where the WCS is defined.
+(1 row)
+
+-- No bounding circle for a region on the far side of its boundary: the
+-- larger-than-half-sky footprint, and a box listed in the order that
+-- describes the rest of the sky. (AST's disc would describe the 60-deg gap
+-- and the 0.014-deg box respectively.)
+SELECT test_error($q$SELECT pgast_bounding_circle(test_header_big())$q$) AS big_footprint_circle;
+                                                                                                     big_footprint_circle                                                                                                      
+-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+ 22023: pgAST error (pgast_bounding_circle_header): the region is the far side of its boundary (e.g. larger than half the sky, or a polygon whose vertices describe the rest of the sky); AST gives no bounding circle for it.
+(1 row)
+
+SELECT test_error($q$SELECT pgast_bounding_circle(polygon '((149.99,1.99),(150.01,1.99),(150.01,2.01),(149.99,2.01))')$q$) AS rest_of_sky_circle;
+                                                                                                       rest_of_sky_circle                                                                                                       
+--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+ 22023: pgAST error (pgast_bounding_circle_polygon): the region is the far side of its boundary (e.g. larger than half the sky, or a polygon whose vertices describe the rest of the sky); AST gives no bounding circle for it.
+(1 row)
+
 SELECT pgast_point_in_polygon(150.0, 2.0, test_header(150, 2, -0.001)) AS centre_after_error;
  centre_after_error 
 --------------------
  t
 (1 row)
 
-\set VERBOSITY default

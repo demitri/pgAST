@@ -13,6 +13,17 @@ PG_MODULE_MAGIC;
 #error "PG_MODULE_MAGIC wasn't defined!"
 #endif
 
+/*
+ Run once when the library is loaded: route AST's error messages into
+ pgast_ast_messages (they become the DETAIL of pgAST's errors) instead of
+ the server's stderr.
+ */
+void
+_PG_init(void)
+{
+	astSetPutErr(pgast_ast_puterr);
+}
+
 // ereport() Ref: https://www.postgresql.org/docs/current/error-message-reporting.html
 // see: src/include/utils/elog.h
 // Error level codes:
@@ -75,7 +86,7 @@ pgast_point_in_polygon_poly(PG_FUNCTION_ARGS) // (polygon polygon, float8 ra, fl
 	dec = deg2rad(dec);
 
 	if (!astOK)
-		pgast_ast_error("pgAST error (pgast_point_in_polygon_poly): AST could not build a polygon from the PostgreSQL polygon.");
+		pgast_ast_error(PGAST_BAD_INPUT, "pgAST error (pgast_point_in_polygon_poly): AST could not build a polygon from the PostgreSQL polygon.");
 
 	{
 		double ra_out, dec_out;

@@ -66,6 +66,17 @@ pgast_cutout(text fits_header_as_string, float8 ra, float8 dec, float8 side_leng
 ```
 
 
+### Errors
+
+pgAST raises errors with standard PostgreSQL SQLSTATE codes, so they can be caught by name (e.g. `EXCEPTION WHEN invalid_parameter_value` in PL/pgSQL):
+
+| SQLSTATE | Name | When |
+|---|---|---|
+| `22023` | `invalid_parameter_value` | The input cannot be used: an unreadable or unsuitable FITS header or WCS, a position or box beyond where the WCS is defined, a polygon AST cannot build, a region with no bounding circle. |
+| `XX000` | `internal_error` | The AST library failed on input that should have worked. |
+
+When the error comes from the AST library, the error's DETAIL carries AST's own message (for example, `astRead(FitsChan): FITS keyword 'CTYPE1' refers to an unknown projection type '-QQQ'.`). An error aborts the whole statement, including a query over many rows.
+
 ### `pgast_bounding_circle`
 
 ##### Returns a bounding circle of a 2D image or a polygon.

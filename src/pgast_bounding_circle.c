@@ -111,7 +111,7 @@ pgast_bounding_circle_polygon(PG_FUNCTION_ARGS) // (polygon polygon)
 
 	if (ast_polygon == AST__NULL) {
 		pgast_ast_end();
-		pgast_ast_error("pgAST error (pgast_bounding_circle_polygon): AST could not build a polygon from the PostgreSQL polygon.");
+		pgast_ast_error(PGAST_BAD_INPUT, "pgAST error (pgast_bounding_circle_polygon): AST could not build a polygon from the PostgreSQL polygon.");
 	}
 
 	pgast_region_bounding_disc((AstRegion *)ast_polygon, centre, &(circle->radius), "pgast_bounding_circle_polygon");

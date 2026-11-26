@@ -5,7 +5,32 @@
 
 // Number of open AST contexts; see pgast_ast_enter() in pgast.h.
 int pgast_ast_depth = 0;
+
+// AST's messages for the current call; see pgast_ast_error() in pgast.h.
+char pgast_ast_messages[PGAST_AST_MESSAGES_SIZE];
+
+/*
+ AST's error-delivery function (registered with astSetPutErr in _PG_init):
+ append the message, one per line, to pgast_ast_messages, which becomes the
+ DETAIL of the error pgAST raises. Messages that do not fit are cut, with a
+ marker saying so.
+ */
+void pgast_ast_puterr(int status, const char *message)
+{
+	(void) status; // the status reaches pgast_ast_error through astStatus
+	size_t used = strlen(pgast_ast_messages);
+	const char *truncated = "\n[further AST messages omitted]";
+	if (used + 1 >= PGAST_AST_MESSAGES_SIZE)
+		return; // already full (and marked)
+	int n = snprintf(pgast_ast_messages + used, PGAST_AST_MESSAGES_SIZE - used,
+					 "%s%s", used > 0 ? "\n" : "", message);
+	if (n < 0 || (size_t) n >= PGAST_AST_MESSAGES_SIZE - used) {
+		size_t mark = strlen(truncated);
+		memcpy(pgast_ast_messages + PGAST_AST_MESSAGES_SIZE - 1 - mark, truncated, mark + 1);
+	}
+}
 #include <math.h>
+#include <string.h>
 
 #define degToRad(angleInDegrees) ((angleInDegrees) * M_PI / 180.0)
 #define radToDeg(angleInRadians) ((angleInRadians) * 180.0 / M_PI)
@@ -52,17 +77,17 @@ void pgast_region_bounding_disc(AstRegion *region, double centre[2], double *rad
 {
 	astGetRegionDisc(region, centre, radius);
 	if (!astOK || *radius == AST__BAD)
-		pgast_ast_error("pgAST error (%s): astGetRegionDisc failed.", caller);
+		pgast_ast_error(PGAST_AST_FAILURE, "pgAST error (%s): astGetRegionDisc failed.", caller);
 	if (*radius >= M_PI - 1e-6)
-		pgast_ast_error("pgAST error (%s): the region's bounding disc covers the whole sky.", caller);
+		pgast_ast_error(PGAST_BAD_INPUT, "pgAST error (%s): the region's bounding disc covers the whole sky.", caller);
 
 	double probe[2], probe_x_out, probe_y_out;
 	astOffset2(region, centre, 0.0, (*radius + M_PI) / 2, probe);
 	astTran2(region, 1, &probe[0], &probe[1], 1, &probe_x_out, &probe_y_out);
 	if (!astOK)
-		pgast_ast_error("pgAST error (%s): AST failed checking the bounding circle.", caller);
+		pgast_ast_error(PGAST_AST_FAILURE, "pgAST error (%s): AST failed checking the bounding circle.", caller);
 	if (probe_x_out != AST__BAD)
-		pgast_ast_error("pgAST error (%s): the region is the far side of its boundary (e.g. larger than half "
+		pgast_ast_error(PGAST_BAD_INPUT, "pgAST error (%s): the region is the far side of its boundary (e.g. larger than half "
 						"the sky, or a polygon whose vertices describe the rest of the sky); AST gives no bounding "
 						"circle for it.", caller);
 }
@@ -103,15 +128,15 @@ AstFrameSet *pgast_read_icrs_wcs(AstFitsChan *fitsChan, const char *caller)
 	astClear(fitsChan, "Card"); // read from the first card
 	AstObject *wcs = astRead(fitsChan);
 	if (wcs == AST__NULL || !astIsAFrameSet(wcs))
-		pgast_ast_error("pgAST error (%s): No valid WCS could be read from the provided header.", caller);
+		pgast_ast_error(PGAST_BAD_INPUT, "pgAST error (%s): No valid WCS could be read from the provided header.", caller);
 
 	AstFrame *sky_frame = astGetFrame((AstFrameSet *)wcs, AST__CURRENT);
 	if (sky_frame == AST__NULL || !astIsASkyFrame(sky_frame))
-		pgast_ast_error("pgAST error (%s): The provided WCS does not contain a sky frame.", caller);
+		pgast_ast_error(PGAST_BAD_INPUT, "pgAST error (%s): The provided WCS does not contain a sky frame.", caller);
 
 	astSet(wcs, "System=ICRS");
 	if (!astOK)
-		pgast_ast_error("pgAST error (%s): could not convert the WCS to ICRS.", caller);
+		pgast_ast_error(PGAST_BAD_INPUT, "pgAST error (%s): could not convert the WCS to ICRS.", caller);
 	return (AstFrameSet *)wcs;
 }
 
@@ -134,7 +159,7 @@ AstFitsChan* cstring2fitsChan(const char *header)
 	//ereport(DEBUG1,  (errmsg("header:\n%s", header)));
 	
 	if (!astOK) {
-		pgast_ast_error("pgAST error (cstring2fitsChan): An error occurred when reading the FITS header.");
+		pgast_ast_error(PGAST_BAD_INPUT, "pgAST error (cstring2fitsChan): An error occurred when reading the FITS header.");
 	}
 
 	// rewind the FitsChan, see section 16.4 in sun211.pdf
@@ -186,7 +211,7 @@ AstPolygon* pgPolygon2astPolygon(POLYGON *polygon, AstSkyFrame *frame) //, doubl
 
 	if (!astOK) {
 		pgast_ast_end();
-		pgast_ast_error("pgAST (pgPolygon2astPolygon): AST could not build a polygon from the PostgreSQL polygon.");
+		pgast_ast_error(PGAST_BAD_INPUT, "pgAST (pgPolygon2astPolygon): AST could not build a polygon from the PostgreSQL polygon.");
 	}
 
 	astExport(ast_polygon);

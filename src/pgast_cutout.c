@@ -24,10 +24,10 @@
 static void cutout_require_good(const double *values, int n, const char *what)
 {
 	if (!astOK)
-		pgast_ast_error("pgAST error (pgast_cutout): AST failed computing %s.", what);
+		pgast_ast_error(PGAST_AST_FAILURE, "pgAST error (pgast_cutout): AST failed computing %s.", what);
 	for (int i=0; i < n; i++) {
 		if (values[i] == AST__BAD)
-			pgast_ast_error("pgAST error (pgast_cutout): %s cannot be computed; the cutout extends beyond "
+			pgast_ast_error(PGAST_BAD_INPUT, "pgAST error (pgast_cutout): %s cannot be computed; the cutout extends beyond "
 							"the region where the WCS is defined.", what);
 	}
 }
@@ -130,7 +130,7 @@ pgast_cutout(PG_FUNCTION_ARGS) // (fits_header text, ra double, dec double, side
 
 	if (!astOK) {
 		pgast_ast_end();
-		pgast_ast_error("pgAST error (pgast_cutout): could not transform the requested position to pixel coordinates.");
+		pgast_ast_error(PGAST_AST_FAILURE, "pgAST error (pgast_cutout): could not transform the requested position to pixel coordinates.");
 	}
 
 	// A position that has no pixel coordinates (it maps to infinity, e.g. far
@@ -148,7 +148,7 @@ pgast_cutout(PG_FUNCTION_ARGS) // (fits_header text, ra double, dec double, side
 		int in_region = astPointInRegion(polygon, p0_world);
 		if (in_region != 0) {
 			// inside the image, yet no pixel coordinates: the WCS failed
-			pgast_ast_error("pgAST error (pgast_cutout): the position is inside the image but the WCS gives it no pixel coordinates.");
+			pgast_ast_error(PGAST_BAD_INPUT, "pgAST error (pgast_cutout): the position is inside the image but the WCS gives it no pixel coordinates.");
 		}
 		ereport(WARNING, (errmsg("pgAST: Provided point is outside provided polygon.")));
 		pgast_ast_end_checked();
@@ -317,7 +317,7 @@ pgast_cutout(PG_FUNCTION_ARGS) // (fits_header text, ra double, dec double, side
 		AstPolygon *box_polygon = astPolygon(sky_frame, 4, 4, box, AST__NULL, "");
 #pragma GCC diagnostic pop
 		if (!astOK)
-			pgast_ast_error("pgAST error (pgast_cutout): AST could not build the cutout polygon.");
+			pgast_ast_error(PGAST_AST_FAILURE, "pgAST error (pgast_cutout): AST could not build the cutout polygon.");
 		if (!astPointInRegion(box_polygon, centre)) {
 			for (int i=0, j=3; i < j; i++, j--) {
 				double t = corners_world_ra[i]; corners_world_ra[i] = corners_world_ra[j]; corners_world_ra[j] = t;

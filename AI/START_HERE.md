@@ -69,10 +69,14 @@ where the two versions behave differently. The `SHLIB_LINK` list in
   NULL-returning variant. The README documents the deliberate `NULL` returns (a header that is
   not a 2D image with both axes at least 2 pixels long); keep that list and
   the code in step.
-- AST failures are raised with `pgast_ast_error(...)` (`src/pgast.h`), never a
-  bare `ereport(ERROR, ...)`: AST's error status is global to the backend, and
-  if an error leaves it set, every later AST call in that session silently
-  does nothing. The macro clears it.
+- AST failures are raised with `pgast_ast_error(code, ...)` (`src/pgast.h`),
+  never a bare `ereport(ERROR, ...)`: AST's error status is global to the
+  backend, and if an error leaves it set, every later AST call in that
+  session silently does nothing. The macro clears it. `code` is
+  `PGAST_BAD_INPUT` (22023) when the input cannot be used, or
+  `PGAST_AST_FAILURE` (XX000) when AST fails on usable input; the README's
+  Errors table is the user-facing list. AST's own messages are captured
+  (`astSetPutErr` in `_PG_init`) into the error's DETAIL.
 - AST contexts are counted: SQL functions start with `pgast_ast_enter()`,
   helpers use `pgast_ast_begin()`, and everything ends with `pgast_ast_end()`
   (or `pgast_ast_end_checked()` on a SQL function's success path, which raises
